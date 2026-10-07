@@ -1,8 +1,8 @@
 # ESP32-S3-Touch-LCD-7
 substitutions:
-  name: "your-device-name"
-  friendly_name: "Your Room Sensor"
-  room: "Your Room"
+  name: "bathroom-mini-display"
+  friendly_name: "Mini Bathroom Display"
+  room: "Bathroom"
 
 # Wifi Setup
 wifi:
