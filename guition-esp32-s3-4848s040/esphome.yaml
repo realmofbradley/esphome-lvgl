@@ -12,6 +12,6 @@ wifi:
 # Packages
 packages:
   setup:
-    url: https://github.com/jtenniswood/esphome-lvgl/
+    url: https://github.com/realmofbradley/esphome-lvgl/
     file: guition-esp32-s3-4848s040/package.yaml
     refresh: 1sec
