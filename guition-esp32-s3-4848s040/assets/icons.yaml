@@ -2,7 +2,7 @@
 
 # Define icons used
 font:
-  - file: 'https://github.com/Templarian/MaterialDesign-Webfont/raw/v7.4.47/fonts/materialdesignicons-webfont.ttf'
+  - file: "https://github.com/Templarian/MaterialDesign-Webfont/raw/v7.4.47/fonts/materialdesignicons-webfont.ttf"
     id: icon_font
     size: 40
     bpp: 4
@@ -27,14 +27,26 @@ font:
       "\U000F0317",  # mdi-lan
       "\U000F0425",  # mdi-power
       "\U000F050F",  # mdi-thermometer
-      ]
-  - file: 'https://github.com/Templarian/MaterialDesign-Webfont/raw/v7.4.47/fonts/materialdesignicons-webfont.ttf'
+      "\U000F0210",  # mdi-fan
+      "\U000F0594",  # mdi-weather-night
+      "\U000F0438",  # mdi-radiator
+      "\U000F075A",  # mdi-music
+      "\U000F040A",  # mdi-play
+      "\U000F03E4",  # mdi-pause
+      "\U000F04AE",  # mdi-skip-previous
+      "\U000F04AD",  # mdi-skip-next
+      "\U000F04DB",  # mdi-stop
+      "\U000F02D1",  # mdi-heart
+      "\U000F0E02",  # mdi-music-note
+    ]
+
+  - file: "https://github.com/Templarian/MaterialDesign-Webfont/raw/v7.4.47/fonts/materialdesignicons-webfont.ttf"
     id: icon_font_small
     size: 20
     bpp: 4
     glyphs: [
       "\U000F050F",  # mdi-thermometer
-      ]
+    ]
 
 # Map icons to names
 substitutions:
