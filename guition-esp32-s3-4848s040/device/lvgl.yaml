@@ -59,15 +59,33 @@ lvgl:
 
         - obj:
             align: BOTTOM_MID
-            y: -38
-            width: 360
-            height: 68
-            radius: 24
-            bg_color: 0x242C36
-            bg_opa: 85%
-            border_width: 1
-            border_color: 0x394451
+            x: -20
+            y: -10
+            width: 8
+            height: 8
+            radius: 4
+            bg_color: 0xFFFFFF
+            border_width: 0
 
+        - obj:
+            align: BOTTOM_MID
+            y: -10
+            width: 8
+            height: 8
+            radius: 4
+            bg_color: 0x59636F
+            border_width: 0
+
+        - obj:
+            align: BOTTOM_MID
+            x: 20
+            y: -10
+            width: 8
+            height: 8
+            radius: 4
+            bg_color: 0x59636F
+            border_width: 0
+            
             widgets:
               - label:
                   align: LEFT_MID
