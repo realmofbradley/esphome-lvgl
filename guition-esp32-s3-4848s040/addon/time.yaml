@@ -1,36 +1,444 @@
-# SNTP Time
-time:
-  - platform: sntp
-    id: sntp_time
-    timezone: America/Toronto
-    servers:
-      - 0.pool.ntp.org
-      - 1.pool.ntp.org
-      - 2.pool.ntp.org
+lvgl:
+  displays:
+    - tft_display
 
-    on_time_sync:
-      - script.execute: time_update
+  touchscreens:
+    - touchscreen_id: tft_touch
 
-    on_time:
-      - minutes: '*'
-        seconds: 0
-        then:
-          - script.execute: time_update
+  bg_color: 0x0F1115
 
-script:
-  - id: time_update
-    then:
-      - lvgl.label.update:
-          id: display_time
-          text: !lambda |-
-            auto now = id(sntp_time).now();
+  page_wrap: true
 
-            if (!now.is_valid()) {
-              return std::string("--:--");
-            }
+  pages:
 
-            char time_buf[6];
-            snprintf(time_buf, sizeof(time_buf), "%02d:%02d",
-                     now.hour, now.minute);
+    # ==========================================================
+    # PAGE 1 — AMBIENT
+    # ==========================================================
+    - id: ambient_page
+      bg_color: 0x18202A
 
-            return std::string(time_buf);
+      on_swipe_left:
+        - lvgl.page.next:
+
+      widgets:
+
+        # Header / time
+        - label:
+            id: display_time
+            align: TOP_MID
+            y: 35
+            text: "--:--"
+            text_font: roboto72_font
+            text_color: 0xFFFFFF
+
+        - label:
+            id: display_date
+            align: TOP_MID
+            y: 118
+            text: "Friday, October 9"
+            text_font: roboto24_font
+            text_color: 0xD7DCE2
+
+        # Weather icon
+        - label:
+            id: weather_icon
+            align: CENTER
+            x: -85
+            y: 35
+            text: "☁"
+            text_font: roboto72_font
+            text_color: 0xFFFFFF
+
+        # Weather details
+        - label:
+            id: weather_temperature
+            align: CENTER
+            x: 65
+            y: 20
+            text: "12°"
+            text_font: roboto48_font
+            text_color: 0xFFFFFF
+
+        - label:
+            id: weather_condition
+            align: CENTER
+            x: 70
+            y: 68
+            text: "Partly Cloudy"
+            text_font: roboto20_font
+            text_color: 0xD7DCE2
+
+        # Bathroom climate pill
+        - obj:
+            align: BOTTOM_MID
+            y: -38
+            width: 360
+            height: 68
+            radius: 24
+            bg_color: 0x242C36
+            bg_opa: 85%
+            border_width: 1
+            border_color: 0x394451
+
+            widgets:
+              - label:
+                  align: LEFT_MID
+                  x: 24
+                  text: "Bathroom"
+                  text_font: roboto20_font
+                  text_color: 0xFFFFFF
+
+              - label:
+                  align: RIGHT_MID
+                  x: -24
+                  text: "22.4°  ·  47%"
+                  text_font: roboto20_font
+                  text_color: 0xD7DCE2
+
+        # Tap anywhere to controls
+        - button:
+            align: CENTER
+            width: 480
+            height: 480
+            bg_opa: TRANSP
+            border_opa: TRANSP
+            shadow_opa: TRANSP
+
+            on_click:
+              - lvgl.page.show:
+                  id: controls_page
+                  animation: MOVE_LEFT
+
+
+    # ==========================================================
+    # PAGE 2 — BATHROOM CONTROLS
+    # ==========================================================
+    - id: controls_page
+      bg_color: 0x101318
+
+      on_swipe_right:
+        - lvgl.page.previous:
+
+      on_swipe_left:
+        - lvgl.page.next:
+
+      widgets:
+
+        - label:
+            align: TOP_LEFT
+            x: 28
+            y: 25
+            text: "Bathroom"
+            text_font: roboto36_font
+            text_color: 0xFFFFFF
+
+        - label:
+            align: TOP_RIGHT
+            x: -28
+            y: 34
+            text: "22.4°  47%"
+            text_font: roboto20_font
+            text_color: 0xAAB4C0
+
+        # ------------------------------------------------------
+        # Lights
+        # ------------------------------------------------------
+        - button:
+            id: bathroom_light_button
+            x: 28
+            y: 105
+            width: 202
+            height: 135
+            radius: 24
+            bg_color: 0x1D232B
+            border_width: 1
+            border_color: 0x323B46
+            shadow_width: 0
+
+            widgets:
+              - label:
+                  align: TOP_LEFT
+                  x: 18
+                  y: 16
+                  text: "●"
+                  text_font: roboto36_font
+                  text_color: 0xFFD166
+
+              - label:
+                  align: BOTTOM_LEFT
+                  x: 18
+                  y: -34
+                  text: "Lights"
+                  text_font: roboto24_font
+                  text_color: 0xFFFFFF
+
+              - label:
+                  align: BOTTOM_LEFT
+                  x: 18
+                  y: -10
+                  text: "On"
+                  text_font: roboto16_font
+                  text_color: 0xAAB4C0
+
+        # ------------------------------------------------------
+        # Fan
+        # ------------------------------------------------------
+        - button:
+            id: bathroom_fan_button
+            x: 250
+            y: 105
+            width: 202
+            height: 135
+            radius: 24
+            bg_color: 0x1D232B
+            border_width: 1
+            border_color: 0x323B46
+            shadow_width: 0
+
+            widgets:
+              - label:
+                  align: TOP_LEFT
+                  x: 18
+                  y: 16
+                  text: "◉"
+                  text_font: roboto36_font
+                  text_color: 0x7DD3FC
+
+              - label:
+                  align: BOTTOM_LEFT
+                  x: 18
+                  y: -34
+                  text: "Fan"
+                  text_font: roboto24_font
+                  text_color: 0xFFFFFF
+
+              - label:
+                  align: BOTTOM_LEFT
+                  x: 18
+                  y: -10
+                  text: "Auto"
+                  text_font: roboto16_font
+                  text_color: 0xAAB4C0
+
+        # ------------------------------------------------------
+        # Night
+        # ------------------------------------------------------
+        - button:
+            id: bathroom_night_button
+            x: 28
+            y: 260
+            width: 202
+            height: 135
+            radius: 24
+            bg_color: 0x1D232B
+            border_width: 1
+            border_color: 0x323B46
+            shadow_width: 0
+
+            widgets:
+              - label:
+                  align: TOP_LEFT
+                  x: 18
+                  y: 16
+                  text: "☾"
+                  text_font: roboto36_font
+                  text_color: 0xC4B5FD
+
+              - label:
+                  align: BOTTOM_LEFT
+                  x: 18
+                  y: -34
+                  text: "Night"
+                  text_font: roboto24_font
+                  text_color: 0xFFFFFF
+
+              - label:
+                  align: BOTTOM_LEFT
+                  x: 18
+                  y: -10
+                  text: "Scene"
+                  text_font: roboto16_font
+                  text_color: 0xAAB4C0
+
+        # ------------------------------------------------------
+        # Heat / fourth tile
+        # ------------------------------------------------------
+        - button:
+            id: bathroom_heat_button
+            x: 250
+            y: 260
+            width: 202
+            height: 135
+            radius: 24
+            bg_color: 0x1D232B
+            border_width: 1
+            border_color: 0x323B46
+            shadow_width: 0
+
+            widgets:
+              - label:
+                  align: TOP_LEFT
+                  x: 18
+                  y: 16
+                  text: "↑"
+                  text_font: roboto36_font
+                  text_color: 0xFB923C
+
+              - label:
+                  align: BOTTOM_LEFT
+                  x: 18
+                  y: -34
+                  text: "Heat"
+                  text_font: roboto24_font
+                  text_color: 0xFFFFFF
+
+              - label:
+                  align: BOTTOM_LEFT
+                  x: 18
+                  y: -10
+                  text: "Off"
+                  text_font: roboto16_font
+                  text_color: 0xAAB4C0
+
+        # Page indicator
+        - label:
+            align: BOTTOM_MID
+            y: -14
+            text: "○  ●  ○"
+            text_font: roboto16_font
+            text_color: 0x7D8792
+
+
+    # ==========================================================
+    # PAGE 3 — MUSIC AUTOMATIONS
+    # ==========================================================
+    - id: music_page
+      bg_color: 0x101318
+
+      on_swipe_right:
+        - lvgl.page.previous:
+
+      widgets:
+
+        - label:
+            align: TOP_LEFT
+            x: 28
+            y: 25
+            text: "Music"
+            text_font: roboto36_font
+            text_color: 0xFFFFFF
+
+        - label:
+            align: TOP_LEFT
+            x: 29
+            y: 70
+            text: "Bathroom presets"
+            text_font: roboto18_font
+            text_color: 0x8E99A6
+
+        # Morning
+        - button:
+            x: 28
+            y: 120
+            width: 424
+            height: 72
+            radius: 22
+            bg_color: 0x1D232B
+            border_width: 1
+            border_color: 0x323B46
+            shadow_width: 0
+
+            widgets:
+              - label:
+                  align: LEFT_MID
+                  x: 22
+                  text: "♪"
+                  text_font: roboto36_font
+                  text_color: 0xFFD166
+
+              - label:
+                  align: LEFT_MID
+                  x: 70
+                  text: "Morning"
+                  text_font: roboto22_font
+                  text_color: 0xFFFFFF
+
+        # Relax
+        - button:
+            x: 28
+            y: 208
+            width: 424
+            height: 72
+            radius: 22
+            bg_color: 0x1D232B
+            border_width: 1
+            border_color: 0x323B46
+            shadow_width: 0
+
+            widgets:
+              - label:
+                  align: LEFT_MID
+                  x: 22
+                  text: "♪"
+                  text_font: roboto36_font
+                  text_color: 0xC4B5FD
+
+              - label:
+                  align: LEFT_MID
+                  x: 70
+                  text: "Relax"
+                  text_font: roboto22_font
+                  text_color: 0xFFFFFF
+
+        # Favourites
+        - button:
+            x: 28
+            y: 296
+            width: 424
+            height: 72
+            radius: 22
+            bg_color: 0x1D232B
+            border_width: 1
+            border_color: 0x323B46
+            shadow_width: 0
+
+            widgets:
+              - label:
+                  align: LEFT_MID
+                  x: 22
+                  text: "♥"
+                  text_font: roboto28_font
+                  text_color: 0xF472B6
+
+              - label:
+                  align: LEFT_MID
+                  x: 70
+                  text: "Bathroom Favourites"
+                  text_font: roboto22_font
+                  text_color: 0xFFFFFF
+
+        # Stop
+        - button:
+            x: 28
+            y: 384
+            width: 424
+            height: 60
+            radius: 22
+            bg_color: 0x261D20
+            border_width: 1
+            border_color: 0x56353D
+            shadow_width: 0
+
+            widgets:
+              - label:
+                  align: CENTER
+                  text: "Stop Music"
+                  text_font: roboto20_font
+                  text_color: 0xFDA4AF
+
+        - label:
+            align: BOTTOM_MID
+            y: -6
+            text: "○  ○  ●"
+            text_font: roboto16_font
+            text_color: 0x7D8792
