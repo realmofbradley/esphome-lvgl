@@ -1,10 +1,4 @@
 lvgl:
-  displays:
-    - tft_display
-
-  touchscreens:
-    - touchscreen_id: tft_touch
-
   bg_color: 0x0F1115
 
   page_wrap: true
@@ -22,7 +16,6 @@ lvgl:
 
       widgets:
 
-        # Header / time
         - label:
             id: display_time
             align: TOP_MID
@@ -39,7 +32,6 @@ lvgl:
             text_font: roboto24_font
             text_color: 0xD7DCE2
 
-        # Weather icon
         - label:
             id: weather_icon
             align: CENTER
@@ -49,7 +41,6 @@ lvgl:
             text_font: roboto72_font
             text_color: 0xFFFFFF
 
-        # Weather details
         - label:
             id: weather_temperature
             align: CENTER
@@ -68,7 +59,6 @@ lvgl:
             text_font: roboto20_font
             text_color: 0xD7DCE2
 
-        # Bathroom climate pill
         - obj:
             align: BOTTOM_MID
             y: -38
@@ -95,7 +85,6 @@ lvgl:
                   text_font: roboto20_font
                   text_color: 0xD7DCE2
 
-        # Tap anywhere to controls
         - button:
             align: CENTER
             width: 480
@@ -160,8 +149,8 @@ lvgl:
                   align: TOP_LEFT
                   x: 18
                   y: 16
-                  text: "●"
-                  text_font: roboto36_font
+                  text: "\U000F0335"
+                  text_font: icon_font
                   text_color: 0xFFD166
 
               - label:
@@ -200,8 +189,8 @@ lvgl:
                   align: TOP_LEFT
                   x: 18
                   y: 16
-                  text: "◉"
-                  text_font: roboto36_font
+                  text: "\U000F0210"
+                  text_font: icon_font
                   text_color: 0x7DD3FC
 
               - label:
@@ -240,8 +229,8 @@ lvgl:
                   align: TOP_LEFT
                   x: 18
                   y: 16
-                  text: "☾"
-                  text_font: roboto36_font
+                  text: "\U000F0594"
+                  text_font: icon_font
                   text_color: 0xC4B5FD
 
               - label:
@@ -261,7 +250,7 @@ lvgl:
                   text_color: 0xAAB4C0
 
         # ------------------------------------------------------
-        # Heat / fourth tile
+        # Heat
         # ------------------------------------------------------
         - button:
             id: bathroom_heat_button
@@ -280,8 +269,8 @@ lvgl:
                   align: TOP_LEFT
                   x: 18
                   y: 16
-                  text: "↑"
-                  text_font: roboto36_font
+                  text: "\U000F0438"
+                  text_font: icon_font
                   text_color: 0xFB923C
 
               - label:
@@ -300,7 +289,6 @@ lvgl:
                   text_font: roboto16_font
                   text_color: 0xAAB4C0
 
-        # Page indicator
         - label:
             align: BOTTOM_MID
             y: -14
@@ -336,7 +324,9 @@ lvgl:
             text_font: roboto18_font
             text_color: 0x8E99A6
 
+        # ------------------------------------------------------
         # Morning
+        # ------------------------------------------------------
         - button:
             x: 28
             y: 120
@@ -352,18 +342,20 @@ lvgl:
               - label:
                   align: LEFT_MID
                   x: 22
-                  text: "♪"
-                  text_font: roboto36_font
+                  text: "\U000F075A"
+                  text_font: icon_font
                   text_color: 0xFFD166
 
               - label:
                   align: LEFT_MID
-                  x: 70
+                  x: 78
                   text: "Morning"
                   text_font: roboto22_font
                   text_color: 0xFFFFFF
 
+        # ------------------------------------------------------
         # Relax
+        # ------------------------------------------------------
         - button:
             x: 28
             y: 208
@@ -379,18 +371,20 @@ lvgl:
               - label:
                   align: LEFT_MID
                   x: 22
-                  text: "♪"
-                  text_font: roboto36_font
+                  text: "\U000F0E02"
+                  text_font: icon_font
                   text_color: 0xC4B5FD
 
               - label:
                   align: LEFT_MID
-                  x: 70
+                  x: 78
                   text: "Relax"
                   text_font: roboto22_font
                   text_color: 0xFFFFFF
 
+        # ------------------------------------------------------
         # Favourites
+        # ------------------------------------------------------
         - button:
             x: 28
             y: 296
@@ -406,18 +400,20 @@ lvgl:
               - label:
                   align: LEFT_MID
                   x: 22
-                  text: "♥"
-                  text_font: roboto28_font
+                  text: "\U000F02D1"
+                  text_font: icon_font
                   text_color: 0xF472B6
 
               - label:
                   align: LEFT_MID
-                  x: 70
+                  x: 78
                   text: "Bathroom Favourites"
                   text_font: roboto22_font
                   text_color: 0xFFFFFF
 
-        # Stop
+        # ------------------------------------------------------
+        # Stop Music
+        # ------------------------------------------------------
         - button:
             x: 28
             y: 384
@@ -431,7 +427,15 @@ lvgl:
 
             widgets:
               - label:
-                  align: CENTER
+                  align: LEFT_MID
+                  x: 22
+                  text: "\U000F04DB"
+                  text_font: icon_font
+                  text_color: 0xFDA4AF
+
+              - label:
+                  align: LEFT_MID
+                  x: 78
                   text: "Stop Music"
                   text_font: roboto20_font
                   text_color: 0xFDA4AF
