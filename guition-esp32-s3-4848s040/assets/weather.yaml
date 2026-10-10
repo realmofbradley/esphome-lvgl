@@ -1,54 +1,54 @@
 image:
   - platform: file
-    file: "assets/weather/clear-day.png"
+    file: "weather/clear-day.png"
     id: weather_clear_day
     type: RGB565
     transparency: alpha_channel
 
   - platform: file
-    file: "assets/weather/partly-cloudy-day.png"
+    file: "weather/partly-cloudy-day.png"
     id: weather_partly_cloudy_day
     type: RGB565
     transparency: alpha_channel
 
   - platform: file
-    file: "assets/weather/cloudy.png"
+    file: "weather/cloudy.png"
     id: weather_cloudy
     type: RGB565
     transparency: alpha_channel
 
   - platform: file
-    file: "assets/weather/rain.png"
+    file: "weather/rain.png"
     id: weather_rain
     type: RGB565
     transparency: alpha_channel
 
   - platform: file
-    file: "assets/weather/clear-night.png"
+    file: "weather/clear-night.png"
     id: weather_clear_night
     type: RGB565
     transparency: alpha_channel
 
   - platform: file
-    file: "assets/weather/partly-cloudy-night.png"
+    file: "weather/partly-cloudy-night.png"
     id: weather_partly_cloudy_night
     type: RGB565
     transparency: alpha_channel
 
   - platform: file
-    file: "assets/weather/snow.png"
+    file: "weather/snow.png"
     id: weather_snow
     type: RGB565
     transparency: alpha_channel
 
   - platform: file
-    file: "assets/weather/fog.png"
+    file: "weather/fog.png"
     id: weather_fog
     type: RGB565
     transparency: alpha_channel
 
   - platform: file
-    file: "assets/weather/thunderstorm.png"
+    file: "weather/thunderstorms.png"
     id: weather_thunderstorm
     type: RGB565
     transparency: alpha_channel
