@@ -32,14 +32,12 @@ lvgl:
             text_font: roboto24_font
             text_color: 0xD7DCE2
 
-        - label:
+        - image:
             id: weather_icon
             align: CENTER
-            x: -85
-            y: 35
-            text: "☁"
-            text_font: roboto72_font
-            text_color: 0xFFFFFF
+            x: -95
+            y: 30
+            src: weather_partly_cloudy_day
 
         - label:
             id: weather_temperature
