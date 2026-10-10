@@ -1,36 +1,56 @@
-# SNTP Time
 time:
-  - platform: sntp
-    id: sntp_time
-    timezone: America/Toronto
-    servers:
-      - 0.pool.ntp.org
-      - 1.pool.ntp.org
-      - 2.pool.ntp.org
+  - platform: homeassistant
+    id: homeassistant_time
 
     on_time_sync:
       - script.execute: time_update
 
     on_time:
-      - minutes: '*'
-        seconds: 0
+      - seconds: /10
         then:
           - script.execute: time_update
 
 script:
   - id: time_update
     then:
-      - lvgl.label.update:
-          id: display_time
-          text: !lambda |-
-            auto now = id(sntp_time).now();
+      - if:
+          condition:
+            time.has_time:
+          then:
+            - lvgl.label.update:
+                id: display_time
+                text: !lambda |-
+                  auto now = id(homeassistant_time).now();
 
-            if (!now.is_valid()) {
-              return std::string("--:--");
-            }
+                  char time_buf[8];
+                  snprintf(time_buf, sizeof(time_buf),
+                           "%d:%02d",
+                           (now.hour % 12 == 0) ? 12 : now.hour % 12,
+                           now.minute);
 
-            char time_buf[6];
-            snprintf(time_buf, sizeof(time_buf), "%02d:%02d",
-                     now.hour, now.minute);
+                  return std::string(time_buf);
 
-            return std::string(time_buf);
+            - lvgl.label.update:
+                id: display_date
+                text: !lambda |-
+                  auto now = id(homeassistant_time).now();
+
+                  static const char *days[] = {
+                    "Sunday", "Monday", "Tuesday", "Wednesday",
+                    "Thursday", "Friday", "Saturday"
+                  };
+
+                  static const char *months[] = {
+                    "January", "February", "March", "April",
+                    "May", "June", "July", "August",
+                    "September", "October", "November", "December"
+                  };
+
+                  char date_buf[40];
+                  snprintf(date_buf, sizeof(date_buf),
+                           "%s, %s %d",
+                           days[now.day_of_week - 1],
+                           months[now.month - 1],
+                           now.day_of_month);
+
+                  return std::string(date_buf);
