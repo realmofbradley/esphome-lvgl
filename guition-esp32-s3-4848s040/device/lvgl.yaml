@@ -146,7 +146,7 @@ lvgl:
               - label:
                   align: TOP_LEFT
                   x: 18
-                  y: 16
+                  y: 8
                   text: "\U000F0335"
                   text_font: icon_font
                   text_color: 0xFFD166
@@ -186,7 +186,7 @@ lvgl:
               - label:
                   align: TOP_LEFT
                   x: 18
-                  y: 16
+                  y: 8
                   text: "\U000F0210"
                   text_font: icon_font
                   text_color: 0x7DD3FC
@@ -226,7 +226,7 @@ lvgl:
               - label:
                   align: TOP_LEFT
                   x: 18
-                  y: 16
+                  y: 8
                   text: "\U000F0594"
                   text_font: icon_font
                   text_color: 0xC4B5FD
@@ -266,7 +266,7 @@ lvgl:
               - label:
                   align: TOP_LEFT
                   x: 18
-                  y: 16
+                  y: 8
                   text: "\U000F0438"
                   text_font: icon_font
                   text_color: 0xFB923C
