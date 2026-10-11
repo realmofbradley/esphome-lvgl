@@ -21,6 +21,16 @@ lvgl:
             align: CENTER
             src: ambient_background_image
 
+        # The weather view remains the idle face. The media package hides this
+        # container while playback (or a short paused grace period) is active.
+        - obj:
+            id: ambient_weather_view
+            width: 480
+            height: 480
+            bg_opa: TRANSP
+            border_width: 0
+            clickable: false
+
         - label:
             id: display_time
             align: TOP_MID
@@ -119,6 +129,7 @@ lvgl:
             border_width: 0
 
         - button:
+            id: ambient_navigation_button
             align: CENTER
             width: 480
             height: 480
@@ -130,6 +141,369 @@ lvgl:
               - lvgl.page.show:
                   id: controls_page
                   animation: MOVE_LEFT
+
+        # Full-screen media layer. Artwork and state are supplied by
+        # device/media.yaml; it deliberately lives on the ambient page so the
+        # existing swipe order (ambient -> controls -> presets) is unchanged.
+        - obj:
+            id: now_playing_view
+            width: 480
+            height: 480
+            bg_color: 0x08090B
+            border_width: 0
+            hidden: true
+            clickable: false
+
+            widgets:
+              - image:
+                  id: album_art_widget
+                  align: CENTER
+                  src: album_art_image
+                  width: 480
+                  height: 480
+
+              - obj:
+                  align: BOTTOM_MID
+                  width: 480
+                  height: 190
+                  bg_color: 0x08090B
+                  bg_opa: 82%
+                  border_width: 0
+                  clickable: false
+
+                  widgets:
+                    - label:
+                        id: media_title_label
+                        align: TOP_MID
+                        y: 12
+                        width: 410
+                        text: "--"
+                        text_align: CENTER
+                        long_mode: DOT
+                        text_font: roboto24_font
+                        text_color: 0xFFFFFF
+
+                    - label:
+                        id: media_artist_label
+                        align: TOP_MID
+                        y: 45
+                        width: 390
+                        text: ""
+                        text_align: CENTER
+                        long_mode: DOT
+                        text_font: roboto18_font
+                        text_color: 0xCDD3DB
+
+                    - bar:
+                        id: media_progress_bar
+                        align: TOP_MID
+                        y: 77
+                        width: 390
+                        height: 6
+                        min_value: 0
+                        max_value: 1000
+                        value: 0
+                        bg_color: 0x525B66
+                        indicator:
+                          bg_color: 0xFFFFFF
+
+                    - label:
+                        id: media_time_label
+                        align: TOP_MID
+                        y: 88
+                        text: "0:00 / 0:00"
+                        text_font: roboto15_font
+                        text_color: 0xAEB7C2
+
+                    - button:
+                        id: media_previous_button
+                        align: BOTTOM_MID
+                        x: -105
+                        y: -12
+                        width: 58
+                        height: 58
+                        radius: 29
+                        bg_color: 0x252A31
+                        on_click:
+                          - script.execute: media_previous
+                        widgets:
+                          - label:
+                              align: CENTER
+                              text: "\U000F04AE"
+                              text_font: icon_font
+
+                    - button:
+                        id: media_play_pause_button
+                        align: BOTTOM_MID
+                        y: -7
+                        width: 70
+                        height: 70
+                        radius: 35
+                        bg_color: 0xFFFFFF
+                        on_click:
+                          - script.execute: media_play_pause
+                        widgets:
+                          - label:
+                              id: media_play_pause_icon
+                              align: CENTER
+                              text: "\U000F040A"
+                              text_font: icon_font
+                              text_color: 0x111318
+
+                    - button:
+                        id: media_next_button
+                        align: BOTTOM_MID
+                        x: 105
+                        y: -12
+                        width: 58
+                        height: 58
+                        radius: 29
+                        bg_color: 0x252A31
+                        on_click:
+                          - script.execute: media_next
+                        widgets:
+                          - label:
+                              align: CENTER
+                              text: "\U000F04AD"
+                              text_font: icon_font
+
+              - button:
+                  id: media_volume_button
+                  align: TOP_RIGHT
+                  x: -15
+                  y: 15
+                  width: 58
+                  height: 58
+                  radius: 29
+                  bg_color: 0x111318
+                  bg_opa: 78%
+                  on_click:
+                    - script.execute: show_media_panel
+                  widgets:
+                    - label:
+                        align: CENTER
+                        text: "\U000F057E"
+                        text_font: icon_font
+
+              - label:
+                  id: media_source_label
+                  align: TOP_LEFT
+                  x: 16
+                  y: 18
+                  text: ""
+                  text_font: roboto16_font
+                  text_color: 0xFFFFFF
+                  bg_color: 0x111318
+                  bg_opa: 70%
+                  pad_left: 10
+                  pad_right: 10
+                  pad_top: 6
+                  pad_bottom: 6
+
+        # Volume and grouping panel. Six speaker slots cover the common room
+        # setup while keeping each row usable on a 480 px display.
+        - obj:
+            id: media_panel
+            width: 480
+            height: 480
+            bg_color: 0x101318
+            border_width: 0
+            hidden: true
+
+            widgets:
+              - label:
+                  x: 24
+                  y: 20
+                  text: "Volume & speakers"
+                  text_font: roboto28_font
+                  text_color: 0xFFFFFF
+
+              - button:
+                  align: TOP_RIGHT
+                  x: -18
+                  y: 14
+                  width: 54
+                  height: 54
+                  radius: 27
+                  bg_color: 0x252A31
+                  on_click:
+                    - script.execute: hide_media_panel
+                  widgets:
+                    - label:
+                        align: CENTER
+                        text: "\U000F0156"
+                        text_font: icon_font
+
+              - obj:
+                  x: 24
+                  y: 82
+                  width: 432
+                  height: 66
+                  radius: 18
+                  bg_color: 0x1D232B
+                  border_width: 1
+                  border_color: 0x323B46
+                  widgets:
+                    - label:
+                        align: LEFT_MID
+                        x: 16
+                        text: "Main"
+                        text_font: roboto20_font
+                    - button:
+                        align: RIGHT_MID
+                        x: -112
+                        width: 48
+                        height: 44
+                        radius: 18
+                        bg_color: 0x303842
+                        on_click:
+                          - script.execute:
+                              id: change_main_volume
+                              direction: -1
+                        widgets:
+                          - label: { align: CENTER, text: "-", text_font: roboto28_font }
+                    - label:
+                        id: main_volume_label
+                        align: RIGHT_MID
+                        x: -63
+                        width: 58
+                        text: "--%"
+                        text_align: CENTER
+                        text_font: roboto18_font
+                    - button:
+                        align: RIGHT_MID
+                        x: -8
+                        width: 48
+                        height: 44
+                        radius: 18
+                        bg_color: 0x303842
+                        on_click:
+                          - script.execute:
+                              id: change_main_volume
+                              direction: 1
+                        widgets:
+                          - label: { align: CENTER, text: "+", text_font: roboto28_font }
+
+              - obj:
+                  id: group_volume_card
+                  x: 24
+                  y: 156
+                  width: 432
+                  height: 54
+                  radius: 16
+                  bg_color: 0x19202A
+                  border_width: 1
+                  border_color: 0x344252
+                  widgets:
+                    - label:
+                        align: LEFT_MID
+                        x: 16
+                        text: "Group"
+                        text_font: roboto18_font
+                    - button:
+                        align: RIGHT_MID
+                        x: -112
+                        width: 44
+                        height: 38
+                        radius: 15
+                        bg_color: 0x303842
+                        on_click:
+                          - script.execute: group_volume_down
+                        widgets:
+                          - label: { align: CENTER, text: "-", text_font: roboto24_font }
+                    - label:
+                        id: group_volume_label
+                        align: RIGHT_MID
+                        x: -63
+                        width: 58
+                        text: "--%"
+                        text_align: CENTER
+                        text_font: roboto18_font
+                    - button:
+                        align: RIGHT_MID
+                        x: -8
+                        width: 44
+                        height: 38
+                        radius: 15
+                        bg_color: 0x303842
+                        on_click:
+                          - script.execute: group_volume_up
+                        widgets:
+                          - label: { align: CENTER, text: "+", text_font: roboto24_font }
+
+              - obj:
+                  id: speakers_container
+                  x: 24
+                  y: 218
+                  width: 432
+                  height: 244
+                  bg_opa: TRANSP
+                  border_width: 0
+                  layout:
+                    type: FLEX
+                    flex_flow: COLUMN
+                    flex_align_main: START
+                    flex_align_cross: CENTER
+                    pad_row: 6
+
+                  widgets:
+                    - obj: &speaker_row
+                        id: speaker_row_0
+                        width: 424
+                        height: 35
+                        radius: 12
+                        bg_color: 0x212832
+                        border_width: 0
+                        widgets:
+                          - label: { id: speaker_name_0, align: LEFT_MID, x: 10, width: 188, long_mode: DOT, text: "", text_font: roboto16_font }
+                          - button: { align: RIGHT_MID, x: -105, width: 34, height: 29, radius: 12, bg_color: 0x303842, on_click: [{ script.execute: { id: change_speaker_volume, slot: 0, direction: -1 } }], widgets: [{ label: { align: CENTER, text: "-", text_font: roboto20_font } }] }
+                          - label: { id: speaker_volume_0, align: RIGHT_MID, x: -67, width: 44, text: "--%", text_align: CENTER, text_font: roboto15_font }
+                          - button: { align: RIGHT_MID, x: -31, width: 34, height: 29, radius: 12, bg_color: 0x303842, on_click: [{ script.execute: { id: change_speaker_volume, slot: 0, direction: 1 } }], widgets: [{ label: { align: CENTER, text: "+", text_font: roboto20_font } }] }
+                    - obj:
+                        <<: *speaker_row
+                        id: speaker_row_1
+                        on_click: [{ script.execute: { id: toggle_speaker_group, slot: 1 } }]
+                        widgets:
+                          - label: { id: speaker_name_1, align: LEFT_MID, x: 10, width: 188, long_mode: DOT, text: "", text_font: roboto16_font }
+                          - button: { align: RIGHT_MID, x: -105, width: 34, height: 29, radius: 12, bg_color: 0x303842, on_click: [{ script.execute: { id: change_speaker_volume, slot: 1, direction: -1 } }], widgets: [{ label: { align: CENTER, text: "-", text_font: roboto20_font } }] }
+                          - label: { id: speaker_volume_1, align: RIGHT_MID, x: -67, width: 44, text: "--%", text_align: CENTER, text_font: roboto15_font }
+                          - button: { align: RIGHT_MID, x: -31, width: 34, height: 29, radius: 12, bg_color: 0x303842, on_click: [{ script.execute: { id: change_speaker_volume, slot: 1, direction: 1 } }], widgets: [{ label: { align: CENTER, text: "+", text_font: roboto20_font } }] }
+                    - obj:
+                        <<: *speaker_row
+                        id: speaker_row_2
+                        on_click: [{ script.execute: { id: toggle_speaker_group, slot: 2 } }]
+                        widgets:
+                          - label: { id: speaker_name_2, align: LEFT_MID, x: 10, width: 188, long_mode: DOT, text: "", text_font: roboto16_font }
+                          - button: { align: RIGHT_MID, x: -105, width: 34, height: 29, radius: 12, bg_color: 0x303842, on_click: [{ script.execute: { id: change_speaker_volume, slot: 2, direction: -1 } }], widgets: [{ label: { align: CENTER, text: "-", text_font: roboto20_font } }] }
+                          - label: { id: speaker_volume_2, align: RIGHT_MID, x: -67, width: 44, text: "--%", text_align: CENTER, text_font: roboto15_font }
+                          - button: { align: RIGHT_MID, x: -31, width: 34, height: 29, radius: 12, bg_color: 0x303842, on_click: [{ script.execute: { id: change_speaker_volume, slot: 2, direction: 1 } }], widgets: [{ label: { align: CENTER, text: "+", text_font: roboto20_font } }] }
+                    - obj:
+                        <<: *speaker_row
+                        id: speaker_row_3
+                        on_click: [{ script.execute: { id: toggle_speaker_group, slot: 3 } }]
+                        widgets:
+                          - label: { id: speaker_name_3, align: LEFT_MID, x: 10, width: 188, long_mode: DOT, text: "", text_font: roboto16_font }
+                          - button: { align: RIGHT_MID, x: -105, width: 34, height: 29, radius: 12, bg_color: 0x303842, on_click: [{ script.execute: { id: change_speaker_volume, slot: 3, direction: -1 } }], widgets: [{ label: { align: CENTER, text: "-", text_font: roboto20_font } }] }
+                          - label: { id: speaker_volume_3, align: RIGHT_MID, x: -67, width: 44, text: "--%", text_align: CENTER, text_font: roboto15_font }
+                          - button: { align: RIGHT_MID, x: -31, width: 34, height: 29, radius: 12, bg_color: 0x303842, on_click: [{ script.execute: { id: change_speaker_volume, slot: 3, direction: 1 } }], widgets: [{ label: { align: CENTER, text: "+", text_font: roboto20_font } }] }
+                    - obj:
+                        <<: *speaker_row
+                        id: speaker_row_4
+                        on_click: [{ script.execute: { id: toggle_speaker_group, slot: 4 } }]
+                        widgets:
+                          - label: { id: speaker_name_4, align: LEFT_MID, x: 10, width: 188, long_mode: DOT, text: "", text_font: roboto16_font }
+                          - button: { align: RIGHT_MID, x: -105, width: 34, height: 29, radius: 12, bg_color: 0x303842, on_click: [{ script.execute: { id: change_speaker_volume, slot: 4, direction: -1 } }], widgets: [{ label: { align: CENTER, text: "-", text_font: roboto20_font } }] }
+                          - label: { id: speaker_volume_4, align: RIGHT_MID, x: -67, width: 44, text: "--%", text_align: CENTER, text_font: roboto15_font }
+                          - button: { align: RIGHT_MID, x: -31, width: 34, height: 29, radius: 12, bg_color: 0x303842, on_click: [{ script.execute: { id: change_speaker_volume, slot: 4, direction: 1 } }], widgets: [{ label: { align: CENTER, text: "+", text_font: roboto20_font } }] }
+                    - obj:
+                        <<: *speaker_row
+                        id: speaker_row_5
+                        on_click: [{ script.execute: { id: toggle_speaker_group, slot: 5 } }]
+                        widgets:
+                          - label: { id: speaker_name_5, align: LEFT_MID, x: 10, width: 188, long_mode: DOT, text: "", text_font: roboto16_font }
+                          - button: { align: RIGHT_MID, x: -105, width: 34, height: 29, radius: 12, bg_color: 0x303842, on_click: [{ script.execute: { id: change_speaker_volume, slot: 5, direction: -1 } }], widgets: [{ label: { align: CENTER, text: "-", text_font: roboto20_font } }] }
+                          - label: { id: speaker_volume_5, align: RIGHT_MID, x: -67, width: 44, text: "--%", text_align: CENTER, text_font: roboto15_font }
+                          - button: { align: RIGHT_MID, x: -31, width: 34, height: 29, radius: 12, bg_color: 0x303842, on_click: [{ script.execute: { id: change_speaker_volume, slot: 5, direction: 1 } }], widgets: [{ label: { align: CENTER, text: "+", text_font: roboto20_font } }] }
 
 
     # ==========================================================

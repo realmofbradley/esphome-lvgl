@@ -1,0 +1,680 @@
+# Media integration adapted from jtenniswood/esphome-media-player.
+# Keeps this project's ambient UI and navigation while reusing the mature
+# runtime subscription, artwork URL, retry, progress and grouping behaviour.
+
+substitutions:
+  media_player_default: ""
+  media_ha_base_url: "http://192.168.20.15:8123"
+  speaker_group_sensor: "sensor.speaker_group"
+
+external_components:
+  - source: github://jtenniswood/esphome-media-player@8ab172b688861893db0cedc93abdb150932eccfc
+    components: [artwork_image]
+    refresh: 1d
+
+http_request:
+  id: media_http_request
+  verify_ssl: false
+  timeout: 6500ms
+
+artwork_image:
+  - id: album_art_image
+    url: "http://192.168.20.15:8123/local/guition/backgrounds/cloudy.jpg"
+    format: AUTO
+    type: RGB565
+    byte_order: little_endian
+    resize: 480x480
+    buffer_size: 65536
+    allow_insecure_local_urls: true
+    on_download_finished:
+      - script.execute: apply_downloaded_artwork
+    on_error:
+      - script.execute: retry_artwork
+
+globals:
+  - id: media_subscription_generation
+    type: int
+    initial_value: '0'
+  - id: subscribed_media_entity
+    type: std::string
+    initial_value: '""'
+  - id: media_last_artwork_url
+    type: std::string
+    initial_value: '""'
+  - id: artwork_retry_count
+    type: int
+    initial_value: '0'
+  - id: media_base_position
+    type: float
+    initial_value: '0.0f'
+  - id: media_position_millis
+    type: uint32_t
+    initial_value: '0'
+  - id: media_duration_value
+    type: float
+    initial_value: '0.0f'
+  - id: media_volume_value
+    type: float
+    initial_value: '0.0f'
+  - id: media_volume_pending_pct
+    type: int
+    initial_value: '-1'
+  - id: media_volume_pending_until
+    type: uint32_t
+    initial_value: '0'
+  - id: speaker_count
+    type: int
+    initial_value: '0'
+  - id: speaker_entity_ids
+    type: std::string[6]
+  - id: speaker_names
+    type: std::string[6]
+  - id: speaker_volumes
+    type: float[6]
+    initial_value: '{0.0f}'
+  - id: speaker_grouped
+    type: bool[6]
+    initial_value: '{false}'
+  - id: group_volume_index
+    type: int
+    initial_value: '0'
+  - id: speaker_service_target
+    type: std::string
+    initial_value: '""'
+  - id: speaker_service_level
+    type: std::string
+    initial_value: '"0"'
+
+api:
+  on_client_connected:
+    - if:
+        condition:
+          lambda: 'return client_info.find("Home Assistant") != std::string::npos;'
+        then:
+          - script.execute: subscribe_selected_media_player
+          - script.execute: parse_speakers
+
+text:
+  - platform: template
+    name: "Media Player"
+    id: media_player_entity
+    entity_category: config
+    icon: "mdi:cast-audio"
+    mode: text
+    optimistic: true
+    restore_value: true
+    initial_value: "${media_player_default}"
+    min_length: 0
+    max_length: 100
+    on_value:
+      - script.execute: subscribe_selected_media_player
+      # Native API subscriptions are negotiated at connection time. Persist and
+      # reboot only for an operator-initiated change while HA is connected.
+      - delay: 500ms
+      - if:
+          condition:
+            lambda: |-
+              return !x.empty() && x.rfind("media_player.", 0) == 0
+                  && esphome::api::global_api_server != nullptr
+                  && esphome::api::global_api_server->is_connected();
+          then:
+            - lambda: 'global_preferences->sync();'
+            - delay: 200ms
+            - lambda: 'App.safe_reboot();'
+
+text_sensor:
+  - platform: template
+    id: media_title_sensor
+    on_value:
+      - lvgl.label.update:
+          id: media_title_label
+          text: !lambda 'return x.empty() ? std::string("--") : x;'
+
+  - platform: template
+    id: media_artist_sensor
+    on_value:
+      - lvgl.label.update:
+          id: media_artist_label
+          text: !lambda 'return x;'
+
+  - platform: template
+    id: media_state_sensor
+    on_value:
+      - script.execute: update_media_state
+
+  - platform: template
+    id: media_picture_sensor
+    on_value:
+      - if:
+          condition:
+            lambda: |-
+              if (x.empty()) return false;
+              std::string path = x;
+              while (!path.empty() && (path.back() == '\n' || path.back() == '\r' || path.back() == ' ')) path.pop_back();
+              std::string url = (path.rfind("http://", 0) == 0 || path.rfind("https://", 0) == 0)
+                  ? path : std::string("${media_ha_base_url}") + path;
+              url = esphome::artwork_image::cap_artwork_url(url, 480);
+              if (url == id(media_last_artwork_url)) return false;
+              id(media_last_artwork_url) = url;
+              id(artwork_retry_count) = 0;
+              return true;
+          then:
+            - script.execute: download_artwork
+
+  - platform: template
+    id: media_position_updated_at_sensor
+
+  - platform: template
+    id: media_source_sensor
+    on_value:
+      - lvgl.label.update:
+          id: media_source_label
+          text: !lambda 'return x;'
+
+  - platform: template
+    id: media_group_members_sensor
+    on_value:
+      - script.execute: update_group_members
+
+  # Same discovery contract as the source project. The HA template sensor's
+  # data attribute is ids|names|volumes[|manufacturers].
+  - platform: homeassistant
+    id: available_speakers_sensor
+    entity_id: ${speaker_group_sensor}
+    attribute: data
+    on_value:
+      - script.execute: parse_speakers
+
+sensor:
+  - platform: template
+    id: media_duration_sensor
+    on_value:
+      - lambda: 'id(media_duration_value) = x > 0.0f ? x : 0.0f;'
+      - script.execute: update_media_progress
+
+  - platform: template
+    id: media_position_sensor
+    on_value:
+      - lambda: |-
+          id(media_base_position) = x > 0.0f ? x : 0.0f;
+          id(media_position_millis) = millis();
+      - script.execute: update_media_progress
+
+  - platform: template
+    id: media_volume_sensor
+    on_value:
+      - lambda: |-
+          float value = x;
+          if (value < 0.0f) value = 0.0f;
+          if (value > 1.0f) value = 1.0f;
+          int incoming = (int) (value * 100.0f + 0.5f);
+          uint32_t now = millis();
+          if (id(media_volume_pending_pct) >= 0
+              && (int32_t) (id(media_volume_pending_until) - now) > 0
+              && incoming != id(media_volume_pending_pct)) {
+            ESP_LOGD("media", "Ignoring stale volume echo %d%%", incoming);
+            return;
+          }
+          id(media_volume_pending_pct) = -1;
+          id(media_volume_pending_until) = 0;
+          id(media_volume_value) = value;
+          char buf[8];
+          snprintf(buf, sizeof(buf), "%d%%", incoming);
+          lv_label_set_text(id(main_volume_label), buf);
+
+interval:
+  - interval: 1s
+    then:
+      - script.execute: update_media_progress
+
+script:
+  - id: subscribe_selected_media_player
+    mode: restart
+    then:
+      - lambda: |-
+          if (esphome::api::global_api_server == nullptr) return;
+          std::string entity = id(media_player_entity).state;
+          if (entity.empty() || entity.rfind("media_player.", 0) != 0) {
+            id(media_subscription_generation)++;
+            id(subscribed_media_entity) = "";
+            if (!entity.empty()) ESP_LOGW("media", "Media Player must start with media_player.");
+            return;
+          }
+          if (entity == id(subscribed_media_entity)) return;
+
+          id(media_subscription_generation)++;
+          id(subscribed_media_entity) = entity;
+          id(media_last_artwork_url) = "";
+          id(media_base_position) = 0.0f;
+          id(media_duration_value) = 0.0f;
+          id(media_position_millis) = millis();
+          const int generation = id(media_subscription_generation);
+          int *generation_ptr = &id(media_subscription_generation);
+          auto *api_server = esphome::api::global_api_server;
+          using state_cb = std::function<void(esphome::StringRef)>;
+
+          auto sub_text = [&](const std::string &attribute, esphome::text_sensor::TextSensor *sensor) {
+            api_server->subscribe_home_assistant_state(entity, esphome::optional<std::string>(attribute),
+                state_cb([generation, generation_ptr, sensor](esphome::StringRef state) {
+                  if (generation == *generation_ptr) sensor->publish_state(state.str());
+                }));
+          };
+          auto sub_number = [&](const std::string &attribute, esphome::sensor::Sensor *sensor) {
+            api_server->subscribe_home_assistant_state(entity, esphome::optional<std::string>(attribute),
+                state_cb([generation, generation_ptr, sensor](esphome::StringRef state) {
+                  if (generation != *generation_ptr) return;
+                  auto parsed = esphome::parse_number<float>(state.str());
+                  if (parsed.has_value()) sensor->publish_state(parsed.value());
+                }));
+          };
+
+          sub_text("media_title", id(media_title_sensor));
+          sub_text("media_artist", id(media_artist_sensor));
+          sub_text("entity_picture", id(media_picture_sensor));
+          sub_text("media_position_updated_at", id(media_position_updated_at_sensor));
+          sub_text("source", id(media_source_sensor));
+          sub_text("group_members", id(media_group_members_sensor));
+          sub_number("media_duration", id(media_duration_sensor));
+          sub_number("media_position", id(media_position_sensor));
+          sub_number("volume_level", id(media_volume_sensor));
+          api_server->subscribe_home_assistant_state(entity, esphome::optional<std::string>(""),
+              state_cb([generation, generation_ptr](esphome::StringRef state) {
+                if (generation == *generation_ptr) id(media_state_sensor).publish_state(state.str());
+              }));
+          ESP_LOGI("media", "Subscribed to %s", entity.c_str());
+
+  - id: update_media_state
+    mode: restart
+    then:
+      - if:
+          condition:
+            lambda: 'return id(media_state_sensor).state == "playing";'
+          then:
+            - script.stop: return_to_weather_after_idle
+            - lvgl.widget.hide: ambient_background
+            - lvgl.widget.hide: display_time
+            - lvgl.widget.hide: display_date
+            - lvgl.widget.hide: weather_icon
+            - lvgl.widget.hide: weather_temperature
+            - lvgl.widget.hide: weather_condition
+            - lvgl.widget.hide: ambient_navigation_button
+            - lvgl.widget.show: now_playing_view
+            - lvgl.widget.hide: media_panel
+            - lvgl.label.update:
+                id: media_play_pause_icon
+                text: "\U000F03E4"
+            - lvgl.page.show:
+                id: ambient_page
+                animation: FADE_IN
+            - script.execute: update_media_progress
+          else:
+            - lvgl.label.update:
+                id: media_play_pause_icon
+                text: "\U000F040A"
+            - if:
+                condition:
+                  lambda: 'return id(media_state_sensor).state == "paused";'
+                then:
+                  # Keep artwork and context indefinitely while paused. The
+                  # user's normal page navigation remains available by swipe.
+                  - script.stop: return_to_weather_after_idle
+                  - lvgl.widget.hide: ambient_background
+                  - lvgl.widget.hide: display_time
+                  - lvgl.widget.hide: display_date
+                  - lvgl.widget.hide: weather_icon
+                  - lvgl.widget.hide: weather_temperature
+                  - lvgl.widget.hide: weather_condition
+                  - lvgl.widget.hide: ambient_navigation_button
+                  - lvgl.widget.show: now_playing_view
+                else:
+                  - script.execute: return_to_weather_after_idle
+
+  - id: return_to_weather_after_idle
+    mode: restart
+    then:
+      - delay: 30s
+      - if:
+          condition:
+            lambda: |-
+              const std::string state = id(media_state_sensor).state;
+              return state == "idle" || state == "off" || state == "standby"
+                  || state == "unavailable" || state == "unknown" || state.empty();
+          then:
+            - lvgl.widget.hide: media_panel
+            - lvgl.widget.hide: now_playing_view
+            - lvgl.widget.show: ambient_background
+            - lvgl.widget.show: display_time
+            - lvgl.widget.show: display_date
+            - lvgl.widget.show: weather_icon
+            - lvgl.widget.show: weather_temperature
+            - lvgl.widget.show: weather_condition
+            - lvgl.widget.show: ambient_navigation_button
+
+  - id: download_artwork
+    mode: restart
+    then:
+      - delay: 250ms
+      - artwork_image.set_url:
+          id: album_art_image
+          url: !lambda 'return id(media_last_artwork_url);'
+      - component.update: album_art_image
+
+  - id: apply_downloaded_artwork
+    mode: restart
+    then:
+      - lambda: 'id(artwork_retry_count) = 0;'
+      - lvgl.image.update:
+          id: album_art_widget
+          src: album_art_image
+      - lvgl.widget.show: album_art_widget
+
+  - id: retry_artwork
+    mode: restart
+    then:
+      - if:
+          condition:
+            lambda: 'return !id(media_last_artwork_url).empty() && id(artwork_retry_count) < 5;'
+          then:
+            - lambda: 'id(artwork_retry_count)++;'
+            - delay: !lambda |-
+                const uint32_t delays[] = {500, 1500, 3000, 6000, 10000};
+                return delays[id(artwork_retry_count) - 1];
+            - artwork_image.set_url:
+                id: album_art_image
+                url: !lambda 'return id(media_last_artwork_url);'
+            - component.update: album_art_image
+          else:
+            - logger.log:
+                level: WARN
+                tag: media
+                format: "Artwork retries exhausted; retaining the previous image"
+
+  - id: update_media_progress
+    mode: restart
+    then:
+      - lambda: |-
+          float duration = id(media_duration_value);
+          float position = id(media_base_position);
+          if (id(media_state_sensor).has_state() && id(media_state_sensor).state == "playing") {
+            position += (millis() - id(media_position_millis)) / 1000.0f;
+          }
+          if (position < 0.0f) position = 0.0f;
+          if (duration > 0.0f && position > duration) position = duration;
+          int value = duration > 0.0f ? (int) (position * 1000.0f / duration + 0.5f) : 0;
+          lv_bar_set_value(id(media_progress_bar), value, LV_ANIM_OFF);
+          auto format_time = [](int seconds) {
+            char out[16];
+            snprintf(out, sizeof(out), "%d:%02d", seconds / 60, seconds % 60);
+            return std::string(out);
+          };
+          std::string label = format_time((int) position) + " / " + format_time((int) duration);
+          lv_label_set_text(id(media_time_label), label.c_str());
+
+  - id: media_play_pause
+    then:
+      - homeassistant.service:
+          service: media_player.media_play_pause
+          variables:
+            target: !lambda 'return id(media_player_entity).state;'
+          data_template:
+            entity_id: "{{ target }}"
+
+  - id: media_previous
+    then:
+      - homeassistant.service:
+          service: media_player.media_previous_track
+          variables:
+            target: !lambda 'return id(media_player_entity).state;'
+          data_template:
+            entity_id: "{{ target }}"
+
+  - id: media_next
+    then:
+      - homeassistant.service:
+          service: media_player.media_next_track
+          variables:
+            target: !lambda 'return id(media_player_entity).state;'
+          data_template:
+            entity_id: "{{ target }}"
+
+  - id: show_media_panel
+    then:
+      - script.execute: refresh_speaker_panel
+      - lvgl.widget.show: media_panel
+
+  - id: hide_media_panel
+    then:
+      - lvgl.widget.hide: media_panel
+
+  - id: change_main_volume
+    mode: restart
+    parameters:
+      direction: int
+    then:
+      - lambda: |-
+          int pct = (int) (id(media_volume_value) * 100.0f + 0.5f) + direction;
+          if (pct < 0) pct = 0;
+          if (pct > 100) pct = 100;
+          id(media_volume_value) = pct / 100.0f;
+          id(media_volume_pending_pct) = pct;
+          id(media_volume_pending_until) = millis() + 1500;
+          char buf[8];
+          snprintf(buf, sizeof(buf), "%d%%", pct);
+          lv_label_set_text(id(main_volume_label), buf);
+          id(speaker_service_target) = id(media_player_entity).state;
+          char level[12];
+          snprintf(level, sizeof(level), "%.2f", id(media_volume_value));
+          id(speaker_service_level) = level;
+      - script.execute: send_volume_level
+
+  - id: send_volume_level
+    mode: queued
+    then:
+      - homeassistant.service:
+          service: media_player.volume_set
+          variables:
+            target: !lambda 'return id(speaker_service_target);'
+            level: !lambda 'return id(speaker_service_level);'
+          data_template:
+            entity_id: "{{ target }}"
+            volume_level: "{{ level }}"
+
+  - id: parse_speakers
+    mode: restart
+    then:
+      - lambda: |-
+          std::string raw = id(available_speakers_sensor).has_state()
+              ? id(available_speakers_sensor).state : "";
+          auto split = [](const std::string &value, char delimiter, size_t limit) {
+            std::vector<std::string> result;
+            size_t start = 0;
+            while (start <= value.size() && result.size() < limit) {
+              size_t end = value.find(delimiter, start);
+              std::string item = value.substr(start, end == std::string::npos ? std::string::npos : end - start);
+              while (!item.empty() && item.front() == ' ') item.erase(0, 1);
+              while (!item.empty() && item.back() == ' ') item.pop_back();
+              result.push_back(item);
+              if (end == std::string::npos) break;
+              start = end + 1;
+            }
+            return result;
+          };
+          auto sections = split(raw, '|', 4);
+          auto ids = sections.size() > 0 ? split(sections[0], ',', 16) : std::vector<std::string>{};
+          auto names = sections.size() > 1 ? split(sections[1], ',', 16) : std::vector<std::string>{};
+          auto volumes = sections.size() > 2 ? split(sections[2], ',', 16) : std::vector<std::string>{};
+          auto manufacturers = sections.size() > 3 ? split(sections[3], ',', 16) : std::vector<std::string>{};
+          for (int i = 0; i < 6; i++) {
+            id(speaker_entity_ids)[i] = "";
+            id(speaker_names)[i] = "";
+            id(speaker_volumes)[i] = 0.0f;
+            id(speaker_grouped)[i] = false;
+          }
+          id(speaker_count) = 0;
+          std::string selected = id(media_player_entity).state;
+          int selected_source_index = -1;
+          for (size_t i = 0; i < ids.size(); i++) {
+            if (!ids[i].empty() && ids[i].rfind("media_player.", 0) != 0) ids[i] = "media_player." + ids[i];
+            if (ids[i] == selected) selected_source_index = (int) i;
+          }
+          std::string selected_manufacturer;
+          if (selected_source_index >= 0 && selected_source_index < (int) manufacturers.size()) {
+            selected_manufacturer = manufacturers[selected_source_index];
+          }
+          auto add_speaker = [&](int source_index) {
+            if (source_index < 0 || source_index >= (int) ids.size() || id(speaker_count) >= 6) return;
+            if (!selected_manufacturer.empty() && source_index < (int) manufacturers.size()
+                && !manufacturers[source_index].empty()
+                && manufacturers[source_index] != selected_manufacturer) return;
+            int slot = id(speaker_count)++;
+            id(speaker_entity_ids)[slot] = ids[source_index];
+            id(speaker_names)[slot] = source_index < (int) names.size() && !names[source_index].empty()
+                ? names[source_index] : ids[source_index];
+            if (source_index < (int) volumes.size()) {
+              auto parsed = esphome::parse_number<float>(volumes[source_index]);
+              if (parsed.has_value()) id(speaker_volumes)[slot] = parsed.value();
+            }
+          };
+          if (selected_source_index >= 0) add_speaker(selected_source_index);
+          for (size_t i = 0; i < ids.size() && id(speaker_count) < 6; i++) {
+            if ((int) i != selected_source_index) add_speaker((int) i);
+          }
+          if (id(speaker_count) == 0 && !selected.empty()) {
+            id(speaker_count) = 1;
+            id(speaker_entity_ids)[0] = selected;
+            id(speaker_names)[0] = "Selected player";
+            id(speaker_volumes)[0] = id(media_volume_value);
+          }
+          id(update_group_members).execute();
+
+  - id: update_group_members
+    mode: restart
+    then:
+      - lambda: |-
+          std::string members = id(media_group_members_sensor).has_state()
+              ? id(media_group_members_sensor).state : "";
+          for (int i = 0; i < id(speaker_count); i++) {
+            id(speaker_grouped)[i] = i == 0 || members.find(id(speaker_entity_ids)[i]) != std::string::npos;
+          }
+      - script.execute: refresh_speaker_panel
+
+  - id: refresh_speaker_panel
+    mode: restart
+    then:
+      - lambda: |-
+          lv_obj_t *rows[] = {id(speaker_row_0), id(speaker_row_1), id(speaker_row_2), id(speaker_row_3), id(speaker_row_4), id(speaker_row_5)};
+          lv_obj_t *names[] = {id(speaker_name_0), id(speaker_name_1), id(speaker_name_2), id(speaker_name_3), id(speaker_name_4), id(speaker_name_5)};
+          lv_obj_t *volumes[] = {id(speaker_volume_0), id(speaker_volume_1), id(speaker_volume_2), id(speaker_volume_3), id(speaker_volume_4), id(speaker_volume_5)};
+          for (int i = 0; i < 6; i++) {
+            if (i >= id(speaker_count)) {
+              lv_obj_add_flag(rows[i], LV_OBJ_FLAG_HIDDEN);
+              continue;
+            }
+            lv_obj_clear_flag(rows[i], LV_OBJ_FLAG_HIDDEN);
+            lv_label_set_text(names[i], id(speaker_names)[i].c_str());
+            int pct = (int) (id(speaker_volumes)[i] * 100.0f + 0.5f);
+            char buf[8];
+            snprintf(buf, sizeof(buf), "%d%%", pct);
+            lv_label_set_text(volumes[i], buf);
+            lv_obj_set_style_bg_color(rows[i], lv_color_hex(id(speaker_grouped)[i] ? 0x263548 : 0x171B20), 0);
+            lv_obj_set_style_border_width(rows[i], id(speaker_grouped)[i] ? 0 : 1, 0);
+            lv_obj_set_style_border_color(rows[i], lv_color_hex(0x566270), 0);
+          }
+          int grouped = 0;
+          float total = 0.0f;
+          for (int i = 0; i < id(speaker_count); i++) {
+            if (id(speaker_grouped)[i]) { grouped++; total += id(speaker_volumes)[i]; }
+          }
+          char group_buf[8];
+          snprintf(group_buf, sizeof(group_buf), "%d%%", grouped ? (int) (total * 100.0f / grouped + 0.5f) : 0);
+          lv_label_set_text(id(group_volume_label), group_buf);
+
+  - id: toggle_speaker_group
+    mode: single
+    parameters:
+      slot: int
+    then:
+      - if:
+          condition:
+            lambda: 'return slot > 0 && slot < id(speaker_count);'
+          then:
+            - if:
+                condition:
+                  lambda: 'return id(speaker_grouped)[slot];'
+                then:
+                  - homeassistant.service:
+                      service: media_player.unjoin
+                      variables:
+                        target: !lambda 'return id(speaker_entity_ids)[slot];'
+                      data_template:
+                        entity_id: "{{ target }}"
+                else:
+                  - homeassistant.service:
+                      service: media_player.join
+                      variables:
+                        target: !lambda 'return id(media_player_entity).state;'
+                        member: !lambda 'return id(speaker_entity_ids)[slot];'
+                      data_template:
+                        entity_id: "{{ target }}"
+                        group_members: "{{ member }}"
+
+  - id: change_speaker_volume
+    mode: restart
+    parameters:
+      slot: int
+      direction: int
+    then:
+      - lambda: |-
+          if (slot < 0 || slot >= id(speaker_count)) return;
+          int pct = (int) (id(speaker_volumes)[slot] * 100.0f + 0.5f) + direction;
+          if (pct < 0) pct = 0;
+          if (pct > 100) pct = 100;
+          id(speaker_volumes)[slot] = pct / 100.0f;
+          id(speaker_service_target) = id(speaker_entity_ids)[slot];
+          char level[12];
+          snprintf(level, sizeof(level), "%.2f", id(speaker_volumes)[slot]);
+          id(speaker_service_level) = level;
+          id(refresh_speaker_panel).execute();
+      - script.execute: send_volume_level
+
+  - id: group_volume_up
+    mode: single
+    then:
+      - lambda: 'id(group_volume_index) = 0;'
+      - script.execute:
+          id: change_group_volume
+          direction: 1
+
+  - id: group_volume_down
+    mode: single
+    then:
+      - lambda: 'id(group_volume_index) = 0;'
+      - script.execute:
+          id: change_group_volume
+          direction: -1
+
+  - id: change_group_volume
+    mode: restart
+    parameters:
+      direction: int
+    then:
+      - while:
+          condition:
+            lambda: |-
+              while (id(group_volume_index) < id(speaker_count)
+                     && !id(speaker_grouped)[id(group_volume_index)]) id(group_volume_index)++;
+              return id(group_volume_index) < id(speaker_count);
+          then:
+            - lambda: |-
+                int slot = id(group_volume_index)++;
+                int pct = (int) (id(speaker_volumes)[slot] * 100.0f + 0.5f) + direction;
+                if (pct < 0) pct = 0;
+                if (pct > 100) pct = 100;
+                id(speaker_volumes)[slot] = pct / 100.0f;
+                id(speaker_service_target) = id(speaker_entity_ids)[slot];
+                char level[12];
+                snprintf(level, sizeof(level), "%.2f", id(speaker_volumes)[slot]);
+                id(speaker_service_level) = level;
+                id(refresh_speaker_panel).execute();
+            - script.execute: send_volume_level
+            - delay: 150ms

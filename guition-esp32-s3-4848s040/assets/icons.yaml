@@ -38,6 +38,8 @@ font:
       "\U000F04DB",  # mdi-stop
       "\U000F02D1",  # mdi-heart
       "\U000F0E02",  # mdi-music-note
+      "\U000F057E",  # mdi-volume-high
+      "\U000F0156",  # mdi-close
     ]
 
   - file: "https://github.com/Templarian/MaterialDesign-Webfont/raw/v7.4.47/fonts/materialdesignicons-webfont.ttf"

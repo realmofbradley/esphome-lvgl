@@ -28,3 +28,20 @@ guition-esp32-s3-4848s040/
 ```
 
 Customize for your setup by editing the YAML files under `device/`, `addon/`, and `theme/`. See the [main README](../README.md) for full quick start and ESPHome setup.
+
+## Media setup
+
+After the device connects to Home Assistant, set its **Media Player** text
+configuration entity to the full entity ID to control (for example,
+`media_player.bathroom`). The choice is stored on the display and changing it
+reboots once so the native API can negotiate the new dynamic subscriptions.
+
+Now Playing replaces only the ambient weather face while playback is active;
+the Bathroom Controls and Music Presets pages remain in the existing swipe
+order. Paused artwork stays visible, while idle/off returns to weather after a
+30-second grace period.
+
+Multi-speaker controls use the same `sensor.speaker_group` data contract as
+`jtenniswood/esphome-media-player`: its `data` attribute contains
+`ids|names|volumes|manufacturers`. If that helper sensor is absent, the panel
+falls back to main-player volume control.
