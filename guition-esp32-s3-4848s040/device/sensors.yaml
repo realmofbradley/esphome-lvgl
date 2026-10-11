@@ -1,1 +1,114 @@
-# Bathroom-specific Home Assistant sensors will go here
+text_sensor:
+  - platform: homeassistant
+    id: weather_condition_state
+    entity_id: weather.toronto_forecast
+
+    on_value:
+      then:
+        - lvgl.label.update:
+            id: weather_condition
+            text: !lambda |-
+              if (x == "clear-night") return std::string("Clear Night");
+              if (x == "sunny") return std::string("Sunny");
+              if (x == "partlycloudy") return std::string("Partly Cloudy");
+              if (x == "cloudy") return std::string("Cloudy");
+              if (x == "fog") return std::string("Fog");
+              if (x == "hail") return std::string("Hail");
+              if (x == "lightning" || x == "lightning-rainy") {
+                return std::string("Thunderstorm");
+              }
+              if (x == "pouring") return std::string("Heavy Rain");
+              if (x == "rainy") return std::string("Rain");
+              if (x == "snowy") return std::string("Snow");
+              if (x == "snowy-rainy") return std::string("Sleet");
+              if (x == "windy" || x == "windy-variant") {
+                return std::string("Windy");
+              }
+              if (x == "exceptional") return std::string("Exceptional");
+              if (x == "unavailable") return std::string("Unavailable");
+              if (x == "unknown") return std::string("Unknown");
+
+              return x;
+
+        - if:
+            condition:
+              lambda: 'return x == "sunny";'
+            then:
+              - lvgl.image.update:
+                  id: weather_icon
+                  src: weather_clear_day
+
+        - if:
+            condition:
+              lambda: 'return x == "clear-night";'
+            then:
+              - lvgl.image.update:
+                  id: weather_icon
+                  src: weather_clear_night
+
+        - if:
+            condition:
+              lambda: 'return x == "partlycloudy";'
+            then:
+              - lvgl.image.update:
+                  id: weather_icon
+                  src: weather_partly_cloudy_day
+
+        - if:
+            condition:
+              lambda: |-
+                return x == "cloudy" || x == "windy" ||
+                       x == "windy-variant" || x == "exceptional" ||
+                       x == "unavailable" || x == "unknown";
+            then:
+              - lvgl.image.update:
+                  id: weather_icon
+                  src: weather_cloudy
+
+        - if:
+            condition:
+              lambda: |-
+                return x == "rainy" || x == "pouring" || x == "hail";
+            then:
+              - lvgl.image.update:
+                  id: weather_icon
+                  src: weather_rain
+
+        - if:
+            condition:
+              lambda: 'return x == "snowy" || x == "snowy-rainy";'
+            then:
+              - lvgl.image.update:
+                  id: weather_icon
+                  src: weather_snow
+
+        - if:
+            condition:
+              lambda: 'return x == "fog";'
+            then:
+              - lvgl.image.update:
+                  id: weather_icon
+                  src: weather_fog
+
+        - if:
+            condition:
+              lambda: 'return x == "lightning" || x == "lightning-rainy";'
+            then:
+              - lvgl.image.update:
+                  id: weather_icon
+                  src: weather_thunderstorm
+
+sensor:
+  - platform: homeassistant
+    id: weather_temperature_sensor
+    entity_id: weather.toronto_forecast
+    attribute: temperature
+
+    on_value:
+      then:
+        - lvgl.label.update:
+            id: weather_temperature
+            text: !lambda |-
+              char text[16];
+              snprintf(text, sizeof(text), "%.0f°", x);
+              return std::string(text);
