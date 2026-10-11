@@ -105,107 +105,36 @@ script:
 
   - id: update_weather_background
     then:
-      - if:
-          condition:
-            lambda: |-
-              return id(weather_condition_state).state == "sunny" &&
-                     id(sun_state).state == "above_horizon";
-          then:
-            - lvgl.image.update:
-                id: ambient_background
-                src: ambient_background_clear_day
+      - online_image.set_url:
+          id: ambient_background_image
+          url: !lambda |-
+            const std::string condition = id(weather_condition_state).state;
+            const bool is_night = id(sun_state).state == "below_horizon";
+            std::string filename = "cloudy.jpg";
 
-      - if:
-          condition:
-            lambda: |-
-              return id(weather_condition_state).state == "clear-night" ||
-                     (id(weather_condition_state).state == "sunny" &&
-                      id(sun_state).state == "below_horizon");
-          then:
-            - lvgl.image.update:
-                id: ambient_background
-                src: ambient_background_clear_night
+            if (condition == "sunny") {
+              filename = is_night ? "clear-night.jpg" : "clear-day.jpg";
+            } else if (condition == "clear-night") {
+              filename = "clear-night.jpg";
+            } else if (condition == "partlycloudy") {
+              filename = is_night
+                  ? "partly-cloudy-night.jpg"
+                  : "partly-cloudy-day.jpg";
+            } else if (condition == "rainy" || condition == "pouring" ||
+                       condition == "hail") {
+              filename = "rain.jpg";
+            } else if (condition == "snowy" || condition == "snowy-rainy") {
+              filename = is_night ? "snowy-night.jpg" : "snowy-day.jpg";
+            } else if (condition == "fog") {
+              filename = "fog.jpg";
+            } else if (condition == "lightning" ||
+                       condition == "lightning-rainy") {
+              filename = "thunderstorm.jpg";
+            }
 
-      - if:
-          condition:
-            lambda: |-
-              return id(weather_condition_state).state == "partlycloudy" &&
-                     id(sun_state).state == "above_horizon";
-          then:
-            - lvgl.image.update:
-                id: ambient_background
-                src: ambient_background_partly_cloudy_day
-
-      - if:
-          condition:
-            lambda: |-
-              return id(weather_condition_state).state == "partlycloudy" &&
-                     id(sun_state).state == "below_horizon";
-          then:
-            - lvgl.image.update:
-                id: ambient_background
-                src: ambient_background_partly_cloudy_night
-
-      - if:
-          condition:
-            lambda: |-
-              return id(weather_condition_state).state == "cloudy";
-          then:
-            - lvgl.image.update:
-                id: ambient_background
-                src: ambient_background_cloudy
-
-      - if:
-          condition:
-            lambda: |-
-              const std::string condition = id(weather_condition_state).state;
-              return condition == "rainy" || condition == "pouring";
-          then:
-            - lvgl.image.update:
-                id: ambient_background
-                src: ambient_background_rain
-
-      - if:
-          condition:
-            lambda: |-
-              const std::string condition = id(weather_condition_state).state;
-              return (condition == "snowy" || condition == "snowy-rainy") &&
-                     id(sun_state).state == "above_horizon";
-          then:
-            - lvgl.image.update:
-                id: ambient_background
-                src: ambient_background_snowy_day
-
-      - if:
-          condition:
-            lambda: |-
-              const std::string condition = id(weather_condition_state).state;
-              return (condition == "snowy" || condition == "snowy-rainy") &&
-                     id(sun_state).state == "below_horizon";
-          then:
-            - lvgl.image.update:
-                id: ambient_background
-                src: ambient_background_snowy_night
-
-      - if:
-          condition:
-            lambda: |-
-              return id(weather_condition_state).state == "fog";
-          then:
-            - lvgl.image.update:
-                id: ambient_background
-                src: ambient_background_fog
-
-      - if:
-          condition:
-            lambda: |-
-              const std::string condition = id(weather_condition_state).state;
-              return condition == "lightning" ||
-                     condition == "lightning-rainy";
-          then:
-            - lvgl.image.update:
-                id: ambient_background
-                src: ambient_background_thunderstorm
+            return "http://192.168.20.15:8123/local/guition/backgrounds/" +
+                   filename;
+          update: true
 
 text_sensor:
   - platform: homeassistant

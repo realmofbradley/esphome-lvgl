@@ -19,7 +19,7 @@ lvgl:
         - image:
             id: ambient_background
             align: CENTER
-            src: ambient_background_clear_day
+            src: ambient_background_image
 
         - label:
             id: display_time

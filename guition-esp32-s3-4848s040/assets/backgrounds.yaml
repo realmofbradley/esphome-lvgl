@@ -1,60 +1,14 @@
+http_request:
+
 image:
-  - platform: file
-    file: "backgrounds/clear-day.jpg"
-    id: ambient_background_clear_day
+  - platform: online_image
+    id: ambient_background_image
+    url: "http://192.168.20.15:8123/local/guition/backgrounds/clear-day.jpg"
+    format: JPEG
     type: RGB565
     resize: 480x480
-
-  - platform: file
-    file: "backgrounds/clear-night.jpg"
-    id: ambient_background_clear_night
-    type: RGB565
-    resize: 480x480
-
-  - platform: file
-    file: "backgrounds/cloudy.jpg"
-    id: ambient_background_cloudy
-    type: RGB565
-    resize: 480x480
-
-  - platform: file
-    file: "backgrounds/partly-cloudy-day.jpg"
-    id: ambient_background_partly_cloudy_day
-    type: RGB565
-    resize: 480x480
-
-  - platform: file
-    file: "backgrounds/partly-cloudy-night.jpg"
-    id: ambient_background_partly_cloudy_night
-    type: RGB565
-    resize: 480x480
-
-  - platform: file
-    file: "backgrounds/rain.jpg"
-    id: ambient_background_rain
-    type: RGB565
-    resize: 480x480
-
-  - platform: file
-    file: "backgrounds/snowy-day.jpg"
-    id: ambient_background_snowy_day
-    type: RGB565
-    resize: 480x480
-
-  - platform: file
-    file: "backgrounds/snowy-night.jpg"
-    id: ambient_background_snowy_night
-    type: RGB565
-    resize: 480x480
-
-  - platform: file
-    file: "backgrounds/fog.jpg"
-    id: ambient_background_fog
-    type: RGB565
-    resize: 480x480
-
-  - platform: file
-    file: "backgrounds/thunderstorm.jpg"
-    id: ambient_background_thunderstorm
-    type: RGB565
-    resize: 480x480
+    update_interval: never
+    on_download_finished:
+      - lvgl.image.update:
+          id: ambient_background
+          src: ambient_background_image
