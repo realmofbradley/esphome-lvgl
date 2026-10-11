@@ -16,6 +16,11 @@ lvgl:
 
       widgets:
 
+        - image:
+            id: ambient_background
+            align: CENTER
+            src: ambient_background_clear_day
+
         - label:
             id: display_time
             align: TOP_MID

@@ -1,0 +1,60 @@
+image:
+  - platform: file
+    file: "backgrounds/clear-day.jpg"
+    id: ambient_background_clear_day
+    type: RGB565
+    resize: 480x480
+
+  - platform: file
+    file: "backgrounds/clear-night.jpg"
+    id: ambient_background_clear_night
+    type: RGB565
+    resize: 480x480
+
+  - platform: file
+    file: "backgrounds/cloudy.jpg"
+    id: ambient_background_cloudy
+    type: RGB565
+    resize: 480x480
+
+  - platform: file
+    file: "backgrounds/partly-cloudy-day.jpg"
+    id: ambient_background_partly_cloudy_day
+    type: RGB565
+    resize: 480x480
+
+  - platform: file
+    file: "backgrounds/partly-cloudy-night.jpg"
+    id: ambient_background_partly_cloudy_night
+    type: RGB565
+    resize: 480x480
+
+  - platform: file
+    file: "backgrounds/rain.jpg"
+    id: ambient_background_rain
+    type: RGB565
+    resize: 480x480
+
+  - platform: file
+    file: "backgrounds/snowy-day.jpg"
+    id: ambient_background_snowy_day
+    type: RGB565
+    resize: 480x480
+
+  - platform: file
+    file: "backgrounds/snowy-night.jpg"
+    id: ambient_background_snowy_night
+    type: RGB565
+    resize: 480x480
+
+  - platform: file
+    file: "backgrounds/fog.jpg"
+    id: ambient_background_fog
+    type: RGB565
+    resize: 480x480
+
+  - platform: file
+    file: "backgrounds/thunderstorm.jpg"
+    id: ambient_background_thunderstorm
+    type: RGB565
+    resize: 480x480

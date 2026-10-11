@@ -103,6 +103,110 @@ script:
                 id: weather_icon
                 src: weather_thunderstorm
 
+  - id: update_weather_background
+    then:
+      - if:
+          condition:
+            lambda: |-
+              return id(weather_condition_state).state == "sunny" &&
+                     id(sun_state).state == "above_horizon";
+          then:
+            - lvgl.image.update:
+                id: ambient_background
+                src: ambient_background_clear_day
+
+      - if:
+          condition:
+            lambda: |-
+              return id(weather_condition_state).state == "clear-night" ||
+                     (id(weather_condition_state).state == "sunny" &&
+                      id(sun_state).state == "below_horizon");
+          then:
+            - lvgl.image.update:
+                id: ambient_background
+                src: ambient_background_clear_night
+
+      - if:
+          condition:
+            lambda: |-
+              return id(weather_condition_state).state == "partlycloudy" &&
+                     id(sun_state).state == "above_horizon";
+          then:
+            - lvgl.image.update:
+                id: ambient_background
+                src: ambient_background_partly_cloudy_day
+
+      - if:
+          condition:
+            lambda: |-
+              return id(weather_condition_state).state == "partlycloudy" &&
+                     id(sun_state).state == "below_horizon";
+          then:
+            - lvgl.image.update:
+                id: ambient_background
+                src: ambient_background_partly_cloudy_night
+
+      - if:
+          condition:
+            lambda: |-
+              return id(weather_condition_state).state == "cloudy";
+          then:
+            - lvgl.image.update:
+                id: ambient_background
+                src: ambient_background_cloudy
+
+      - if:
+          condition:
+            lambda: |-
+              const std::string condition = id(weather_condition_state).state;
+              return condition == "rainy" || condition == "pouring";
+          then:
+            - lvgl.image.update:
+                id: ambient_background
+                src: ambient_background_rain
+
+      - if:
+          condition:
+            lambda: |-
+              const std::string condition = id(weather_condition_state).state;
+              return (condition == "snowy" || condition == "snowy-rainy") &&
+                     id(sun_state).state == "above_horizon";
+          then:
+            - lvgl.image.update:
+                id: ambient_background
+                src: ambient_background_snowy_day
+
+      - if:
+          condition:
+            lambda: |-
+              const std::string condition = id(weather_condition_state).state;
+              return (condition == "snowy" || condition == "snowy-rainy") &&
+                     id(sun_state).state == "below_horizon";
+          then:
+            - lvgl.image.update:
+                id: ambient_background
+                src: ambient_background_snowy_night
+
+      - if:
+          condition:
+            lambda: |-
+              return id(weather_condition_state).state == "fog";
+          then:
+            - lvgl.image.update:
+                id: ambient_background
+                src: ambient_background_fog
+
+      - if:
+          condition:
+            lambda: |-
+              const std::string condition = id(weather_condition_state).state;
+              return condition == "lightning" ||
+                     condition == "lightning-rainy";
+          then:
+            - lvgl.image.update:
+                id: ambient_background
+                src: ambient_background_thunderstorm
+
 text_sensor:
   - platform: homeassistant
     id: weather_condition_state
@@ -136,6 +240,7 @@ text_sensor:
               return x;
 
         - script.execute: update_weather_icon
+        - script.execute: update_weather_background
 
   - platform: homeassistant
     id: sun_state
@@ -144,6 +249,7 @@ text_sensor:
     on_value:
       then:
         - script.execute: update_weather_icon
+        - script.execute: update_weather_background
 
 sensor:
   - platform: homeassistant

@@ -8,4 +8,5 @@ packages:
   fonts: !include assets/fonts.yaml
   icons: !include assets/icons.yaml
   weather: !include assets/weather.yaml
+  backgrounds: !include assets/backgrounds.yaml
   button: !include theme/button.yaml
