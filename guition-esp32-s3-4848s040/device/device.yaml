@@ -23,6 +23,14 @@ esp32:
   flash_size: 16MB
   framework:
     type: esp-idf
+    # artwork_image copies this component into the build tree for JPEG
+    # decoding. Declaring the same pinned component here also adds it to
+    # ESPHome's generated src component requirements under ESP-IDF.
+    components:
+      - name: libjpeg-turbo-esp32
+        source: https://github.com/jtenniswood/esphome-media-player.git
+        ref: 8ab172b688861893db0cedc93abdb150932eccfc
+        path: components/libjpeg-turbo-esp32
 
 
 # -----------------------------------------------------------------------------
