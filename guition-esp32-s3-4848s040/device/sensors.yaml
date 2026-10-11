@@ -1,3 +1,108 @@
+script:
+  - id: update_weather_icon
+    then:
+      - if:
+          condition:
+            lambda: |-
+              return id(weather_condition_state).state == "sunny" &&
+                     id(sun_state).state == "above_horizon";
+          then:
+            - lvgl.image.update:
+                id: weather_icon
+                src: weather_clear_day
+
+      - if:
+          condition:
+            lambda: |-
+              return id(weather_condition_state).state == "sunny" &&
+                     id(sun_state).state == "below_horizon";
+          then:
+            - lvgl.image.update:
+                id: weather_icon
+                src: weather_clear_night
+
+      - if:
+          condition:
+            lambda: |-
+              return id(weather_condition_state).state == "clear-night";
+          then:
+            - lvgl.image.update:
+                id: weather_icon
+                src: weather_clear_night
+
+      - if:
+          condition:
+            lambda: |-
+              return id(weather_condition_state).state == "partlycloudy" &&
+                     id(sun_state).state == "above_horizon";
+          then:
+            - lvgl.image.update:
+                id: weather_icon
+                src: weather_partly_cloudy_day
+
+      - if:
+          condition:
+            lambda: |-
+              return id(weather_condition_state).state == "partlycloudy" &&
+                     id(sun_state).state == "below_horizon";
+          then:
+            - lvgl.image.update:
+                id: weather_icon
+                src: weather_partly_cloudy_night
+
+      - if:
+          condition:
+            lambda: |-
+              const std::string condition = id(weather_condition_state).state;
+              return condition == "cloudy" || condition == "windy" ||
+                     condition == "windy-variant" || condition == "exceptional" ||
+                     condition == "unavailable" || condition == "unknown";
+          then:
+            - lvgl.image.update:
+                id: weather_icon
+                src: weather_cloudy
+
+      - if:
+          condition:
+            lambda: |-
+              const std::string condition = id(weather_condition_state).state;
+              return condition == "rainy" || condition == "pouring" ||
+                     condition == "hail";
+          then:
+            - lvgl.image.update:
+                id: weather_icon
+                src: weather_rain
+
+      - if:
+          condition:
+            lambda: |-
+              const std::string condition = id(weather_condition_state).state;
+              return condition == "snowy" || condition == "snowy-rainy";
+          then:
+            - lvgl.image.update:
+                id: weather_icon
+                src: weather_snow
+
+      - if:
+          condition:
+            lambda: |-
+              return id(weather_condition_state).state == "fog";
+          then:
+            - lvgl.image.update:
+                id: weather_icon
+                src: weather_fog
+
+      - if:
+          condition:
+            lambda: |-
+              const std::string condition = id(weather_condition_state).state;
+              return condition == "lightning" ||
+                     condition == "lightning-rainy";
+          then:
+            - lvgl.image.update:
+                id: weather_icon
+                src: weather_thunderstorm
+
 text_sensor:
   - platform: homeassistant
     id: weather_condition_state
@@ -30,73 +135,15 @@ text_sensor:
 
               return x;
 
-        - if:
-            condition:
-              lambda: 'return x == "sunny";'
-            then:
-              - lvgl.image.update:
-                  id: weather_icon
-                  src: weather_clear_day
+        - script.execute: update_weather_icon
 
-        - if:
-            condition:
-              lambda: 'return x == "clear-night";'
-            then:
-              - lvgl.image.update:
-                  id: weather_icon
-                  src: weather_clear_night
+  - platform: homeassistant
+    id: sun_state
+    entity_id: sun.sun
 
-        - if:
-            condition:
-              lambda: 'return x == "partlycloudy";'
-            then:
-              - lvgl.image.update:
-                  id: weather_icon
-                  src: weather_partly_cloudy_day
-
-        - if:
-            condition:
-              lambda: |-
-                return x == "cloudy" || x == "windy" ||
-                       x == "windy-variant" || x == "exceptional" ||
-                       x == "unavailable" || x == "unknown";
-            then:
-              - lvgl.image.update:
-                  id: weather_icon
-                  src: weather_cloudy
-
-        - if:
-            condition:
-              lambda: |-
-                return x == "rainy" || x == "pouring" || x == "hail";
-            then:
-              - lvgl.image.update:
-                  id: weather_icon
-                  src: weather_rain
-
-        - if:
-            condition:
-              lambda: 'return x == "snowy" || x == "snowy-rainy";'
-            then:
-              - lvgl.image.update:
-                  id: weather_icon
-                  src: weather_snow
-
-        - if:
-            condition:
-              lambda: 'return x == "fog";'
-            then:
-              - lvgl.image.update:
-                  id: weather_icon
-                  src: weather_fog
-
-        - if:
-            condition:
-              lambda: 'return x == "lightning" || x == "lightning-rainy";'
-            then:
-              - lvgl.image.update:
-                  id: weather_icon
-                  src: weather_thunderstorm
+    on_value:
+      then:
+        - script.execute: update_weather_icon
 
 sensor:
   - platform: homeassistant
