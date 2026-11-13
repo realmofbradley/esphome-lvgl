@@ -74,11 +74,11 @@ globals:
   - id: speaker_names
     type: std::string[6]
   - id: speaker_volumes
-    type: float[6]
-    initial_value: '{0.0f}'
+    type: 'std::array<float, 6>'
+    initial_value: 'std::array<float, 6>{}'
   - id: speaker_grouped
-    type: bool[6]
-    initial_value: '{false}'
+    type: 'std::array<bool, 6>'
+    initial_value: 'std::array<bool, 6>{}'
   - id: group_volume_index
     type: int
     initial_value: '0'
@@ -86,14 +86,14 @@ globals:
     type: int
     initial_value: '0'
   - id: speaker_reported_volumes
-    type: float[6]
-    initial_value: '{0.0f}'
+    type: 'std::array<float, 6>'
+    initial_value: 'std::array<float, 6>{}'
   - id: speaker_volume_pending_pct
-    type: int[6]
-    initial_value: '{-1, -1, -1, -1, -1, -1}'
+    type: 'std::array<int, 6>'
+    initial_value: 'std::array<int, 6>{-1, -1, -1, -1, -1, -1}'
   - id: speaker_volume_pending_until
-    type: uint32_t[6]
-    initial_value: '{0}'
+    type: 'std::array<uint32_t, 6>'
+    initial_value: 'std::array<uint32_t, 6>{}'
 
 api:
   on_client_connected:
