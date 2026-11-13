@@ -177,9 +177,22 @@ text_sensor:
   - platform: template
     id: media_source_sensor
     on_value:
-      - lvgl.label.update:
-          id: media_source_label
-          text: !lambda 'return x;'
+      - lambda: |-
+          const size_t start = x.find_first_not_of(" \t\r\n");
+          const std::string source = start == std::string::npos ? ""
+              : x.substr(start, x.find_last_not_of(" \t\r\n") - start + 1);
+          std::string normalized = source;
+          for (char &ch : normalized) {
+            if (ch >= 'A' && ch <= 'Z') ch += 'a' - 'A';
+          }
+          if (source.empty() || normalized == "unknown" || normalized == "unavailable"
+              || normalized == "none" || normalized == "null" || normalized == "n/a") {
+            lv_label_set_text(id(media_source_label), "");
+            lv_obj_add_flag(id(media_source_label), LV_OBJ_FLAG_HIDDEN);
+          } else {
+            lv_label_set_text(id(media_source_label), source.c_str());
+            lv_obj_clear_flag(id(media_source_label), LV_OBJ_FLAG_HIDDEN);
+          }
 
   - platform: template
     id: media_group_members_sensor

@@ -320,6 +320,7 @@ lvgl:
                   scrollbar_mode: "off"
                   text_color: 0xFFFFFF
                   id: media_source_label
+                  hidden: true
                   x: 16
                   y: 18
                   width: 352
