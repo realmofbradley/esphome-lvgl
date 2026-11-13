@@ -4,7 +4,6 @@
 
 substitutions:
   media_player_default: ""
-  media_ha_base_url: "http://192.168.20.15:8123"
   speaker_group_sensor: "sensor.speaker_group"
 
 external_components:
@@ -19,7 +18,7 @@ http_request:
 
 artwork_image:
   - id: album_art_image
-    url: "http://192.168.20.15:8123/local/guition/backgrounds/cloudy.jpg"
+    url: "${ha_base_url}/local/guition/backgrounds/cloudy.jpg"
     format: AUTO
     type: RGB565
     byte_order: little_endian
@@ -152,7 +151,7 @@ text_sensor:
               std::string path = x;
               while (!path.empty() && (path.back() == '\n' || path.back() == '\r' || path.back() == ' ')) path.pop_back();
               std::string url = (path.rfind("http://", 0) == 0 || path.rfind("https://", 0) == 0)
-                  ? path : std::string("${media_ha_base_url}") + path;
+                  ? path : std::string("${ha_base_url}") + path;
               url = esphome::artwork_image::cap_artwork_url(url, 480);
               if (url == id(media_last_artwork_url)) return false;
               id(media_last_artwork_url) = url;
