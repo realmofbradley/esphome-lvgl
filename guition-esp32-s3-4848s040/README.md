@@ -44,7 +44,8 @@ with an error if any is missing.
 - `bathroom_humidity_entity`: the Home Assistant humidity sensor shown in the
   Bathroom climate pill, for example `sensor.bathroom_humidity`.
 - `bathroom_light_entity`: the Bathroom light controlled by the Lights
-  tile, for example `light.bathroom`.
+  tile. Both `light.*` and `switch.*` entities are supported, for example
+  `light.bathroom` or `switch.top_bathroom_main_lights`.
 - `bathroom_fan_entity`: the Bathroom fan controlled by the Fan tile,
   for example `fan.bathroom`.
 - `bathroom_heat_entity`: the climate entity shown on the dedicated

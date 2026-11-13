@@ -209,10 +209,28 @@ script:
 
   - id: toggle_bathroom_light
     then:
-      - homeassistant.service:
-          service: light.toggle
-          data:
-            entity_id: ${bathroom_light_entity}
+      - if:
+          condition:
+            lambda: 'return std::string("${bathroom_light_entity}").rfind("switch.", 0) == 0;'
+          then:
+            - homeassistant.service:
+                service: switch.toggle
+                data:
+                  entity_id: ${bathroom_light_entity}
+          else:
+            - if:
+                condition:
+                  lambda: 'return std::string("${bathroom_light_entity}").rfind("light.", 0) == 0;'
+                then:
+                  - homeassistant.service:
+                      service: light.toggle
+                      data:
+                        entity_id: ${bathroom_light_entity}
+                else:
+                  - logger.log:
+                      level: WARN
+                      tag: bathroom
+                      format: "Bathroom light entity must start with light. or switch."
 
   - id: toggle_bathroom_fan
     then:
