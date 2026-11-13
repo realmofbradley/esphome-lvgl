@@ -40,6 +40,11 @@ globals:
   - id: media_last_artwork_url
     type: std::string
     initial_value: '""'
+  # True while the player is "playing", so the page only switches to
+  # Now Playing when playback starts, not on every repeated state update.
+  - id: media_was_playing
+    type: bool
+    initial_value: 'false'
   - id: artwork_retry_count
     type: int
     initial_value: '0'
@@ -302,11 +307,17 @@ script:
             - lvgl.label.update:
                 id: media_play_pause_icon
                 text: "\U000F03E4"
-            - lvgl.page.show:
-                id: ambient_page
-                animation: FADE_IN
+            - if:
+                condition:
+                  lambda: 'return !id(media_was_playing);'
+                then:
+                  - lvgl.page.show:
+                      id: ambient_page
+                      animation: FADE_IN
+            - lambda: 'id(media_was_playing) = true;'
             - script.execute: update_media_progress
           else:
+            - lambda: 'id(media_was_playing) = false;'
             - lvgl.label.update:
                 id: media_play_pause_icon
                 text: "\U000F040A"

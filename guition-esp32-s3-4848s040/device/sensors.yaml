@@ -321,7 +321,7 @@ script:
 text_sensor:
   - platform: homeassistant
     id: weather_condition_state
-    entity_id: weather.toronto_forecast
+    entity_id: ${weather_entity}
 
     on_value:
       then:
@@ -365,7 +365,7 @@ text_sensor:
 sensor:
   - platform: homeassistant
     id: weather_temperature_sensor
-    entity_id: weather.toronto_forecast
+    entity_id: ${weather_entity}
     attribute: temperature
 
     on_value:
