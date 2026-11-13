@@ -46,8 +46,9 @@ with an error if any is missing.
 - `bathroom_light_entity`: the Bathroom light controlled by the Lights
   tile. Both `light.*` and `switch.*` entities are supported, for example
   `light.bathroom` or `switch.top_bathroom_main_lights`.
-- `bathroom_fan_entity`: the Bathroom fan controlled by the Fan tile,
-  for example `fan.bathroom`.
+- `bathroom_fan_entity`: the Bathroom fan controlled by the Fan tile.
+  Both `fan.*` and `switch.*` entities are supported, for example
+  `fan.bathroom` or `switch.bathroom_fan`.
 - `bathroom_heat_entity`: the climate entity shown on the dedicated
   heating controller, for example `climate.bathroom_heater`. It is safe for
   this entity to be unavailable while the heater is offline.
