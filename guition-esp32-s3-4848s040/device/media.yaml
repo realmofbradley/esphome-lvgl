@@ -82,12 +82,18 @@ globals:
   - id: group_volume_index
     type: int
     initial_value: '0'
-  - id: speaker_service_target
-    type: std::string
-    initial_value: '""'
-  - id: speaker_service_level
-    type: std::string
-    initial_value: '"0"'
+  - id: speaker_page
+    type: int
+    initial_value: '0'
+  - id: speaker_reported_volumes
+    type: float[6]
+    initial_value: '{0.0f}'
+  - id: speaker_volume_pending_pct
+    type: int[6]
+    initial_value: '{-1, -1, -1, -1, -1, -1}'
+  - id: speaker_volume_pending_until
+    type: uint32_t[6]
+    initial_value: '{0}'
 
 api:
   on_client_connected:
@@ -207,29 +213,13 @@ sensor:
   - platform: template
     id: media_volume_sensor
     on_value:
-      - lambda: |-
-          float value = x;
-          if (value < 0.0f) value = 0.0f;
-          if (value > 1.0f) value = 1.0f;
-          int incoming = (int) (value * 100.0f + 0.5f);
-          uint32_t now = millis();
-          if (id(media_volume_pending_pct) >= 0
-              && (int32_t) (id(media_volume_pending_until) - now) > 0
-              && incoming != id(media_volume_pending_pct)) {
-            ESP_LOGD("media", "Ignoring stale volume echo %d%%", incoming);
-            return;
-          }
-          id(media_volume_pending_pct) = -1;
-          id(media_volume_pending_until) = 0;
-          id(media_volume_value) = value;
-          char buf[8];
-          snprintf(buf, sizeof(buf), "%d%%", incoming);
-          lv_label_set_text(id(main_volume_label), buf);
+      - script.execute: reconcile_volume_feedback
 
 interval:
   - interval: 1s
     then:
       - script.execute: update_media_progress
+      - script.execute: reconcile_volume_feedback
 
 script:
   - id: subscribe_selected_media_player
@@ -302,8 +292,8 @@ script:
             - lvgl.widget.hide: weather_temperature
             - lvgl.widget.hide: weather_condition
             - lvgl.widget.hide: ambient_navigation_button
+            - lambda: 'lv_obj_clear_flag(id(ambient_navigation_button), LV_OBJ_FLAG_CLICKABLE);'
             - lvgl.widget.show: now_playing_view
-            - lvgl.widget.hide: media_panel
             - lvgl.label.update:
                 id: media_play_pause_icon
                 text: "\U000F03E4"
@@ -311,6 +301,7 @@ script:
                 condition:
                   lambda: 'return !id(media_was_playing);'
                 then:
+                  - lvgl.widget.hide: media_panel
                   - lvgl.page.show:
                       id: ambient_page
                       animation: FADE_IN
@@ -335,6 +326,7 @@ script:
                   - lvgl.widget.hide: weather_temperature
                   - lvgl.widget.hide: weather_condition
                   - lvgl.widget.hide: ambient_navigation_button
+                  - lambda: 'lv_obj_clear_flag(id(ambient_navigation_button), LV_OBJ_FLAG_CLICKABLE);'
                   - lvgl.widget.show: now_playing_view
                 else:
                   - script.execute: return_to_weather_after_idle
@@ -358,6 +350,7 @@ script:
             - lvgl.widget.show: weather_icon
             - lvgl.widget.show: weather_temperature
             - lvgl.widget.show: weather_condition
+            - lambda: 'lv_obj_add_flag(id(ambient_navigation_button), LV_OBJ_FLAG_CLICKABLE);'
             - lvgl.widget.show: ambient_navigation_button
 
   - id: download_artwork
@@ -449,8 +442,11 @@ script:
 
   - id: show_media_panel
     then:
-      - script.execute: refresh_speaker_panel
+      - lambda: 'id(speaker_page) = 0;'
+      - script.execute: reconcile_volume_feedback
+      - lvgl.widget.hide: ambient_navigation_button
       - lvgl.widget.show: media_panel
+      - lambda: 'lv_obj_move_foreground(id(media_panel));'
 
   - id: hide_media_panel
     then:
@@ -461,33 +457,98 @@ script:
     parameters:
       direction: int
     then:
-      - lambda: |-
-          int pct = (int) (id(media_volume_value) * 100.0f + 0.5f) + direction;
-          if (pct < 0) pct = 0;
-          if (pct > 100) pct = 100;
-          id(media_volume_value) = pct / 100.0f;
-          id(media_volume_pending_pct) = pct;
-          id(media_volume_pending_until) = millis() + 1500;
-          char buf[8];
-          snprintf(buf, sizeof(buf), "%d%%", pct);
-          lv_label_set_text(id(main_volume_label), buf);
-          id(speaker_service_target) = id(media_player_entity).state;
-          char level[12];
-          snprintf(level, sizeof(level), "%.2f", id(media_volume_value));
-          id(speaker_service_level) = level;
-      - script.execute: send_volume_level
+      - script.execute:
+          id: set_player_volume
+          target: !lambda 'return id(media_player_entity).state;'
+          level: !lambda 'return id(media_volume_value) + direction * 0.05f;'
 
+  # Capture each target/level in script parameters, so group and individual
+  # presses cannot overwrite one another through shared service globals.
   - id: send_volume_level
     mode: queued
+    parameters:
+      target: string
+      level: float
     then:
       - homeassistant.service:
           service: media_player.volume_set
           variables:
-            target: !lambda 'return id(speaker_service_target);'
-            level: !lambda 'return id(speaker_service_level);'
+            request_target: !lambda 'return target;'
+            request_level: !lambda 'return level;'
           data_template:
-            entity_id: "{{ target }}"
-            volume_level: "{{ level }}"
+            entity_id: "{{ request_target }}"
+            volume_level: "{{ request_level }}"
+
+  - id: set_player_volume
+    mode: queued
+    parameters:
+      target: string
+      level: float
+    then:
+      - if:
+          condition:
+            lambda: 'return target.rfind("media_player.", 0) == 0 && std::isfinite(level);'
+          then:
+            - lambda: |-
+                if (level < 0.0f) level = 0.0f;
+                if (level > 1.0f) level = 1.0f;
+                const int pct = (int) (level * 100.0f + 0.5f);
+                level = pct / 100.0f;
+                const uint32_t until = millis() + 1500;
+                if (target == id(media_player_entity).state) {
+                  id(media_volume_value) = level;
+                  id(media_volume_pending_pct) = pct;
+                  id(media_volume_pending_until) = until;
+                }
+                for (int i = 0; i < id(speaker_count); i++) {
+                  if (id(speaker_entity_ids)[i] != target) continue;
+                  id(speaker_volumes)[i] = level;
+                  id(speaker_volume_pending_pct)[i] = pct;
+                  id(speaker_volume_pending_until)[i] = until;
+                }
+                id(refresh_speaker_panel).execute();
+            - script.execute:
+                id: send_volume_level
+                target: !lambda 'return target;'
+                level: !lambda 'return level < 0.0f ? 0.0f : level > 1.0f ? 1.0f : ((int) (level * 100.0f + 0.5f)) / 100.0f;'
+
+  # HA remains authoritative after the 1.5 s optimistic window. Reconcile on
+  # every HA update and on the timer, even if no new echo arrives after expiry.
+  - id: reconcile_volume_feedback
+    mode: restart
+    then:
+      - lambda: |-
+          const uint32_t now = millis();
+          if (id(media_volume_sensor).has_state() && std::isfinite(id(media_volume_sensor).state)) {
+            float value = id(media_volume_sensor).state;
+            if (value < 0.0f) value = 0.0f;
+            if (value > 1.0f) value = 1.0f;
+            const int incoming = (int) (value * 100.0f + 0.5f);
+            if (id(media_volume_pending_pct) >= 0
+                && (int32_t) (id(media_volume_pending_until) - now) > 0
+                && incoming != id(media_volume_pending_pct)) {
+              ESP_LOGD("media", "Ignoring stale volume echo %d%%", incoming);
+            } else {
+              id(media_volume_pending_pct) = -1;
+              id(media_volume_pending_until) = 0;
+              id(media_volume_value) = value;
+            }
+          }
+          for (int i = 0; i < id(speaker_count); i++) {
+            if (id(speaker_entity_ids)[i] == id(media_player_entity).state) {
+              id(speaker_volumes)[i] = id(media_volume_value);
+              continue;
+            }
+            const float reported = id(speaker_reported_volumes)[i];
+            const int incoming = (int) (reported * 100.0f + 0.5f);
+            if (id(speaker_volume_pending_pct)[i] >= 0
+                && (int32_t) (id(speaker_volume_pending_until)[i] - now) > 0
+                && incoming != id(speaker_volume_pending_pct)[i]) continue;
+            id(speaker_volume_pending_pct)[i] = -1;
+            id(speaker_volume_pending_until)[i] = 0;
+            id(speaker_volumes)[i] = reported;
+          }
+      - script.execute: refresh_speaker_panel
 
   - id: parse_speakers
     mode: restart
@@ -514,17 +575,34 @@ script:
           auto names = sections.size() > 1 ? split(sections[1], ',', 16) : std::vector<std::string>{};
           auto volumes = sections.size() > 2 ? split(sections[2], ',', 16) : std::vector<std::string>{};
           auto manufacturers = sections.size() > 3 ? split(sections[3], ',', 16) : std::vector<std::string>{};
+          // Preserve optimistic state by entity, even when discovery reorders.
+          std::string old_ids[6];
+          float old_volumes[6], old_reported[6];
+          int old_pending[6];
+          uint32_t old_until[6];
           for (int i = 0; i < 6; i++) {
+            old_ids[i] = id(speaker_entity_ids)[i];
+            old_volumes[i] = id(speaker_volumes)[i];
+            old_reported[i] = id(speaker_reported_volumes)[i];
+            old_pending[i] = id(speaker_volume_pending_pct)[i];
+            old_until[i] = id(speaker_volume_pending_until)[i];
             id(speaker_entity_ids)[i] = "";
             id(speaker_names)[i] = "";
             id(speaker_volumes)[i] = 0.0f;
+            id(speaker_reported_volumes)[i] = 0.0f;
+            id(speaker_volume_pending_pct)[i] = -1;
+            id(speaker_volume_pending_until)[i] = 0;
             id(speaker_grouped)[i] = false;
           }
           id(speaker_count) = 0;
-          std::string selected = id(media_player_entity).state;
+          const std::string selected = id(media_player_entity).state;
           int selected_source_index = -1;
           for (size_t i = 0; i < ids.size(); i++) {
-            if (!ids[i].empty() && ids[i].rfind("media_player.", 0) != 0) ids[i] = "media_player." + ids[i];
+            if (ids[i].empty() || ids[i] == "unknown" || ids[i] == "unavailable" || ids[i] == "None") {
+              ids[i] = "";
+              continue;
+            }
+            if (ids[i].rfind("media_player.", 0) != 0) ids[i] = "media_player." + ids[i];
             if (ids[i] == selected) selected_source_index = (int) i;
           }
           std::string selected_manufacturer;
@@ -532,39 +610,68 @@ script:
             selected_manufacturer = manufacturers[selected_source_index];
           }
           auto add_speaker = [&](int source_index) {
-            if (source_index < 0 || source_index >= (int) ids.size() || id(speaker_count) >= 6) return;
+            if (source_index < 0 || source_index >= (int) ids.size()
+                || ids[source_index].empty() || id(speaker_count) >= 6) return;
             if (!selected_manufacturer.empty() && source_index < (int) manufacturers.size()
                 && !manufacturers[source_index].empty()
                 && manufacturers[source_index] != selected_manufacturer) return;
-            int slot = id(speaker_count)++;
+            for (int i = 0; i < id(speaker_count); i++) {
+              if (id(speaker_entity_ids)[i] == ids[source_index]) return;
+            }
+            const int slot = id(speaker_count)++;
             id(speaker_entity_ids)[slot] = ids[source_index];
             id(speaker_names)[slot] = source_index < (int) names.size() && !names[source_index].empty()
                 ? names[source_index] : ids[source_index];
+            for (int old = 0; old < 6; old++) {
+              if (old_ids[old] != ids[source_index]) continue;
+              id(speaker_volumes)[slot] = old_volumes[old];
+              id(speaker_reported_volumes)[slot] = old_reported[old];
+              id(speaker_volume_pending_pct)[slot] = old_pending[old];
+              id(speaker_volume_pending_until)[slot] = old_until[old];
+              break;
+            }
             if (source_index < (int) volumes.size()) {
               auto parsed = esphome::parse_number<float>(volumes[source_index]);
-              if (parsed.has_value()) id(speaker_volumes)[slot] = parsed.value();
+              if (parsed.has_value() && std::isfinite(parsed.value())) {
+                float value = parsed.value();
+                if (value < 0.0f) value = 0.0f;
+                if (value > 1.0f) value = 1.0f;
+                id(speaker_reported_volumes)[slot] = value;
+              }
             }
           };
-          if (selected_source_index >= 0) add_speaker(selected_source_index);
-          for (size_t i = 0; i < ids.size() && id(speaker_count) < 6; i++) {
-            if ((int) i != selected_source_index) add_speaker((int) i);
-          }
-          if (id(speaker_count) == 0 && !selected.empty()) {
+          if (selected_source_index >= 0) {
+            add_speaker(selected_source_index);
+          } else if (selected.rfind("media_player.", 0) == 0) {
+            // Always reserve the leader slot, even if discovery omits it.
             id(speaker_count) = 1;
             id(speaker_entity_ids)[0] = selected;
             id(speaker_names)[0] = "Selected player";
             id(speaker_volumes)[0] = id(media_volume_value);
+            id(speaker_reported_volumes)[0] = id(media_volume_value);
           }
-          id(update_group_members).execute();
+          for (size_t i = 0; i < ids.size() && id(speaker_count) < 6; i++) {
+            if ((int) i != selected_source_index) add_speaker((int) i);
+          }
+      - script.execute: update_group_members
+      - script.execute: reconcile_volume_feedback
 
   - id: update_group_members
     mode: restart
     then:
       - lambda: |-
-          std::string members = id(media_group_members_sensor).has_state()
+          const std::string members = id(media_group_members_sensor).has_state()
               ? id(media_group_members_sensor).state : "";
+          // Match complete entity IDs (room must not match room_2).
+          std::string normalized = ",";
+          for (char ch : members) {
+            if (ch != '[' && ch != ']' && ch != '\'' && ch != '"' && ch != ' ') normalized += ch;
+          }
+          normalized += ",";
           for (int i = 0; i < id(speaker_count); i++) {
-            id(speaker_grouped)[i] = i == 0 || members.find(id(speaker_entity_ids)[i]) != std::string::npos;
+            const std::string entity = id(speaker_entity_ids)[i];
+            id(speaker_grouped)[i] = entity == id(media_player_entity).state
+                || normalized.find("," + entity + ",") != std::string::npos;
           }
       - script.execute: refresh_speaker_panel
 
@@ -572,24 +679,35 @@ script:
     mode: restart
     then:
       - lambda: |-
+          // Restored settings / HA callbacks can arrive before LVGL is ready.
+          if (id(main_volume_label) == nullptr) return;
           lv_obj_t *rows[] = {id(speaker_row_0), id(speaker_row_1), id(speaker_row_2), id(speaker_row_3), id(speaker_row_4), id(speaker_row_5)};
           lv_obj_t *names[] = {id(speaker_name_0), id(speaker_name_1), id(speaker_name_2), id(speaker_name_3), id(speaker_name_4), id(speaker_name_5)};
           lv_obj_t *volumes[] = {id(speaker_volume_0), id(speaker_volume_1), id(speaker_volume_2), id(speaker_volume_3), id(speaker_volume_4), id(speaker_volume_5)};
+          lv_obj_t *toggles[] = {id(speaker_group_button_0), id(speaker_group_button_1), id(speaker_group_button_2), id(speaker_group_button_3), id(speaker_group_button_4), id(speaker_group_button_5)};
+          lv_obj_t *toggle_labels[] = {id(speaker_group_label_0), id(speaker_group_label_1), id(speaker_group_label_2), id(speaker_group_label_3), id(speaker_group_label_4), id(speaker_group_label_5)};
+          const int pages = id(speaker_count) > 0 ? (id(speaker_count) + 1) / 2 : 1;
+          if (id(speaker_page) >= pages) id(speaker_page) = pages - 1;
+          if (id(speaker_page) < 0) id(speaker_page) = 0;
           for (int i = 0; i < 6; i++) {
-            if (i >= id(speaker_count)) {
+            if (i >= id(speaker_count) || i / 2 != id(speaker_page)) {
               lv_obj_add_flag(rows[i], LV_OBJ_FLAG_HIDDEN);
               continue;
             }
             lv_obj_clear_flag(rows[i], LV_OBJ_FLAG_HIDDEN);
             lv_label_set_text(names[i], id(speaker_names)[i].c_str());
-            int pct = (int) (id(speaker_volumes)[i] * 100.0f + 0.5f);
             char buf[8];
-            snprintf(buf, sizeof(buf), "%d%%", pct);
+            snprintf(buf, sizeof(buf), "%d%%", (int) (id(speaker_volumes)[i] * 100.0f + 0.5f));
             lv_label_set_text(volumes[i], buf);
+            const bool leader = id(speaker_entity_ids)[i] == id(media_player_entity).state;
+            lv_label_set_text(toggle_labels[i], leader ? "Main" : id(speaker_grouped)[i] ? "Leave" : "Join");
+            if (leader) lv_obj_add_state(toggles[i], LV_STATE_DISABLED);
+            else lv_obj_clear_state(toggles[i], LV_STATE_DISABLED);
             lv_obj_set_style_bg_color(rows[i], lv_color_hex(id(speaker_grouped)[i] ? 0x263548 : 0x171B20), 0);
-            lv_obj_set_style_border_width(rows[i], id(speaker_grouped)[i] ? 0 : 1, 0);
-            lv_obj_set_style_border_color(rows[i], lv_color_hex(0x566270), 0);
           }
+          char main_buf[8];
+          snprintf(main_buf, sizeof(main_buf), "%d%%", (int) (id(media_volume_value) * 100.0f + 0.5f));
+          lv_label_set_text(id(main_volume_label), main_buf);
           int grouped = 0;
           float total = 0.0f;
           for (int i = 0; i < id(speaker_count); i++) {
@@ -598,6 +716,23 @@ script:
           char group_buf[8];
           snprintf(group_buf, sizeof(group_buf), "%d%%", grouped ? (int) (total * 100.0f / grouped + 0.5f) : 0);
           lv_label_set_text(id(group_volume_label), group_buf);
+          char page_buf[40];
+          if (id(speaker_count) == 0) snprintf(page_buf, sizeof(page_buf), "No speakers");
+          else snprintf(page_buf, sizeof(page_buf), "%d-%d of %d", id(speaker_page) * 2 + 1,
+              std::min(id(speaker_page) * 2 + 2, id(speaker_count)), id(speaker_count));
+          lv_label_set_text(id(speaker_page_label), page_buf);
+          if (id(speaker_page) == 0) lv_obj_add_state(id(speaker_page_previous), LV_STATE_DISABLED);
+          else lv_obj_clear_state(id(speaker_page_previous), LV_STATE_DISABLED);
+          if (id(speaker_page) == pages - 1) lv_obj_add_state(id(speaker_page_next), LV_STATE_DISABLED);
+          else lv_obj_clear_state(id(speaker_page_next), LV_STATE_DISABLED);
+
+  - id: change_speaker_page
+    mode: restart
+    parameters:
+      direction: int
+    then:
+      - lambda: 'id(speaker_page) += direction;'
+      - script.execute: refresh_speaker_panel
 
   - id: toggle_speaker_group
     mode: single
@@ -606,7 +741,7 @@ script:
     then:
       - if:
           condition:
-            lambda: 'return slot > 0 && slot < id(speaker_count);'
+            lambda: 'return slot >= 0 && slot < id(speaker_count) && id(speaker_entity_ids)[slot] != id(media_player_entity).state;'
           then:
             - if:
                 condition:
@@ -634,40 +769,36 @@ script:
       slot: int
       direction: int
     then:
-      - lambda: |-
-          if (slot < 0 || slot >= id(speaker_count)) return;
-          int pct = (int) (id(speaker_volumes)[slot] * 100.0f + 0.5f) + direction;
-          if (pct < 0) pct = 0;
-          if (pct > 100) pct = 100;
-          id(speaker_volumes)[slot] = pct / 100.0f;
-          id(speaker_service_target) = id(speaker_entity_ids)[slot];
-          char level[12];
-          snprintf(level, sizeof(level), "%.2f", id(speaker_volumes)[slot]);
-          id(speaker_service_level) = level;
-          id(refresh_speaker_panel).execute();
-      - script.execute: send_volume_level
+      - if:
+          condition:
+            lambda: 'return slot >= 0 && slot < id(speaker_count);'
+          then:
+            - script.execute:
+                id: set_player_volume
+                target: !lambda 'return id(speaker_entity_ids)[slot];'
+                level: !lambda 'return id(speaker_volumes)[slot] + direction * 0.05f;'
 
   - id: group_volume_up
-    mode: single
     then:
-      - lambda: 'id(group_volume_index) = 0;'
       - script.execute:
           id: change_group_volume
           direction: 1
 
   - id: group_volume_down
-    mode: single
     then:
-      - lambda: 'id(group_volume_index) = 0;'
       - script.execute:
           id: change_group_volume
           direction: -1
 
+  # Finish every group press before starting the next; rapid taps must not
+  # restart halfway through the group and adjust only the first few speakers.
   - id: change_group_volume
-    mode: restart
+    mode: queued
+    max_runs: 20
     parameters:
       direction: int
     then:
+      - lambda: 'id(group_volume_index) = 0;'
       - while:
           condition:
             lambda: |-
@@ -675,16 +806,9 @@ script:
                      && !id(speaker_grouped)[id(group_volume_index)]) id(group_volume_index)++;
               return id(group_volume_index) < id(speaker_count);
           then:
-            - lambda: |-
-                int slot = id(group_volume_index)++;
-                int pct = (int) (id(speaker_volumes)[slot] * 100.0f + 0.5f) + direction;
-                if (pct < 0) pct = 0;
-                if (pct > 100) pct = 100;
-                id(speaker_volumes)[slot] = pct / 100.0f;
-                id(speaker_service_target) = id(speaker_entity_ids)[slot];
-                char level[12];
-                snprintf(level, sizeof(level), "%.2f", id(speaker_volumes)[slot]);
-                id(speaker_service_level) = level;
-                id(refresh_speaker_panel).execute();
-            - script.execute: send_volume_level
+            - script.execute:
+                id: change_speaker_volume
+                slot: !lambda 'return id(group_volume_index)++;'
+                direction: !lambda 'return direction;'
             - delay: 150ms
+
