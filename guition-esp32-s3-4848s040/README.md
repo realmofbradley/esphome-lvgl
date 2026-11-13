@@ -29,12 +29,16 @@ guition-esp32-s3-4848s040/
 
 Customize for your setup by editing the YAML files under `device/`, `addon/`, and `theme/`. See the [main README](../README.md) for full quick start and ESPHome setup.
 
-## Home Assistant URL
+## Required settings
 
-Set `ha_base_url` in the `substitutions:` block of `esphome.yaml` to your Home
-Assistant address, for example `http://192.168.1.100:8123` (no trailing
-slash). The display downloads weather backgrounds and album artwork from it.
-The build stops with an error if it is not set.
+Set these in the `substitutions:` block of `esphome.yaml`. The build stops
+with an error if either is missing.
+
+- `ha_base_url`: your Home Assistant address, for example
+  `http://192.168.1.100:8123` (no trailing slash). The display downloads
+  weather backgrounds and album artwork from it.
+- `weather_entity`: the Home Assistant weather entity shown on the ambient
+  face, for example `weather.forecast_home`.
 
 ## Weather backgrounds
 

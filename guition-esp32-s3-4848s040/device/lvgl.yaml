@@ -21,16 +21,6 @@ lvgl:
             align: CENTER
             src: ambient_background_image
 
-        # The weather view remains the idle face. The media package hides this
-        # container while playback (or a short paused grace period) is active.
-        - obj:
-            id: ambient_weather_view
-            width: 480
-            height: 480
-            bg_opa: TRANSP
-            border_width: 0
-            clickable: false
-
         - label:
             id: display_time
             align: TOP_MID
