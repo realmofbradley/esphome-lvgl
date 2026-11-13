@@ -1873,151 +1873,252 @@ lvgl:
 
 
     # ==========================================================
-    # PAGE 3 — MUSIC AUTOMATIONS
+    # PAGE 3 — MUSIC PRESETS
     # ==========================================================
     - id: music_page
       bg_color: 0x101318
+      pad_all: 0
+      scrollable: false
+      scrollbar_mode: "off"
 
       on_swipe_right:
         - lvgl.page.previous:
 
-      widgets:
+      on_load:
+        - script.execute: update_music_presets
 
+      widgets:
         - label:
             align: TOP_LEFT
-            x: 28
-            y: 25
+            x: 24
+            y: 18
             text: "Music"
             text_font: roboto36_font
             text_color: 0xFFFFFF
 
         - label:
             align: TOP_LEFT
-            x: 29
-            y: 70
-            text: "Bathroom presets"
+            x: 25
+            y: 61
+            text: "Music Assistant presets"
             text_font: roboto18_font
             text_color: 0x8E99A6
 
-        # ------------------------------------------------------
-        # Morning
-        # ------------------------------------------------------
         - button:
-            x: 28
-            y: 120
-            width: 424
-            height: 72
+            id: music_preset_1_button
+            x: 24
+            y: 104
+            width: 210
+            height: 92
             radius: 22
             bg_color: 0x1D232B
             border_width: 1
             border_color: 0x323B46
             shadow_width: 0
-
+            scrollable: false
+            scrollbar_mode: "off"
+            on_click:
+              - script.execute:
+                  id: play_music_preset
+                  uri: !lambda 'return id(music_preset_1_uri).state;'
             widgets:
               - label:
-                  align: LEFT_MID
-                  x: 22
+                  id: music_preset_1_icon_label
+                  align: TOP_MID
+                  y: 10
                   text: "\U000F075A"
                   text_font: icon_font
                   text_color: 0xFFD166
-
               - label:
-                  align: LEFT_MID
-                  x: 78
-                  text: "Morning"
-                  text_font: roboto22_font
+                  id: music_preset_1_label
+                  align: BOTTOM_MID
+                  y: -10
+                  width: 184
+                  text: "Preset 1"
+                  text_align: CENTER
+                  long_mode: DOT
+                  text_font: roboto18_font
                   text_color: 0xFFFFFF
 
-        # ------------------------------------------------------
-        # Relax
-        # ------------------------------------------------------
         - button:
-            x: 28
-            y: 208
-            width: 424
-            height: 72
+            id: music_preset_2_button
+            x: 246
+            y: 104
+            width: 210
+            height: 92
             radius: 22
             bg_color: 0x1D232B
             border_width: 1
             border_color: 0x323B46
             shadow_width: 0
-
+            scrollable: false
+            scrollbar_mode: "off"
+            on_click:
+              - script.execute:
+                  id: play_music_preset
+                  uri: !lambda 'return id(music_preset_2_uri).state;'
             widgets:
               - label:
-                  align: LEFT_MID
-                  x: 22
-                  text: "\U000F0E02"
+                  id: music_preset_2_icon_label
+                  align: TOP_MID
+                  y: 10
+                  text: "\U000F075A"
                   text_font: icon_font
                   text_color: 0xC4B5FD
-
               - label:
-                  align: LEFT_MID
-                  x: 78
-                  text: "Relax"
-                  text_font: roboto22_font
+                  id: music_preset_2_label
+                  align: BOTTOM_MID
+                  y: -10
+                  width: 184
+                  text: "Preset 2"
+                  text_align: CENTER
+                  long_mode: DOT
+                  text_font: roboto18_font
                   text_color: 0xFFFFFF
 
-        # ------------------------------------------------------
-        # Favourites
-        # ------------------------------------------------------
         - button:
-            x: 28
-            y: 296
-            width: 424
-            height: 72
+            id: music_preset_3_button
+            x: 24
+            y: 208
+            width: 210
+            height: 92
             radius: 22
             bg_color: 0x1D232B
             border_width: 1
             border_color: 0x323B46
             shadow_width: 0
-
+            scrollable: false
+            scrollbar_mode: "off"
+            on_click:
+              - script.execute:
+                  id: play_music_preset
+                  uri: !lambda 'return id(music_preset_3_uri).state;'
             widgets:
               - label:
-                  align: LEFT_MID
-                  x: 22
-                  text: "\U000F02D1"
+                  id: music_preset_3_icon_label
+                  align: TOP_MID
+                  y: 10
+                  text: "\U000F075A"
                   text_font: icon_font
                   text_color: 0xF472B6
-
               - label:
-                  align: LEFT_MID
-                  x: 78
-                  text: "Bathroom Favourites"
-                  text_font: roboto22_font
+                  id: music_preset_3_label
+                  align: BOTTOM_MID
+                  y: -10
+                  width: 184
+                  text: "Preset 3"
+                  text_align: CENTER
+                  long_mode: DOT
+                  text_font: roboto18_font
                   text_color: 0xFFFFFF
 
-        # ------------------------------------------------------
-        # Stop Music
-        # ------------------------------------------------------
         - button:
-            x: 28
-            y: 384
-            width: 424
-            height: 60
+            id: music_preset_4_button
+            x: 246
+            y: 208
+            width: 210
+            height: 92
+            radius: 22
+            bg_color: 0x1D232B
+            border_width: 1
+            border_color: 0x323B46
+            shadow_width: 0
+            scrollable: false
+            scrollbar_mode: "off"
+            on_click:
+              - script.execute:
+                  id: play_music_preset
+                  uri: !lambda 'return id(music_preset_4_uri).state;'
+            widgets:
+              - label:
+                  id: music_preset_4_icon_label
+                  align: TOP_MID
+                  y: 10
+                  text: "\U000F075A"
+                  text_font: icon_font
+                  text_color: 0x67E8F9
+              - label:
+                  id: music_preset_4_label
+                  align: BOTTOM_MID
+                  y: -10
+                  width: 184
+                  text: "Preset 4"
+                  text_align: CENTER
+                  long_mode: DOT
+                  text_font: roboto18_font
+                  text_color: 0xFFFFFF
+
+        - button:
+            id: music_preset_5_button
+            x: 24
+            y: 312
+            width: 210
+            height: 92
+            radius: 22
+            bg_color: 0x1D232B
+            border_width: 1
+            border_color: 0x323B46
+            shadow_width: 0
+            scrollable: false
+            scrollbar_mode: "off"
+            on_click:
+              - script.execute:
+                  id: play_music_preset
+                  uri: !lambda 'return id(music_preset_5_uri).state;'
+            widgets:
+              - label:
+                  id: music_preset_5_icon_label
+                  align: TOP_MID
+                  y: 10
+                  text: "\U000F075A"
+                  text_font: icon_font
+                  text_color: 0x86EFAC
+              - label:
+                  id: music_preset_5_label
+                  align: BOTTOM_MID
+                  y: -10
+                  width: 184
+                  text: "Preset 5"
+                  text_align: CENTER
+                  long_mode: DOT
+                  text_font: roboto18_font
+                  text_color: 0xFFFFFF
+
+        - button:
+            id: stop_music_button
+            x: 246
+            y: 312
+            width: 210
+            height: 92
             radius: 22
             bg_color: 0x261D20
             border_width: 1
             border_color: 0x56353D
             shadow_width: 0
-
+            scrollable: false
+            scrollbar_mode: "off"
+            on_click:
+              - script.execute: stop_music
             widgets:
               - label:
-                  align: LEFT_MID
-                  x: 22
+                  align: TOP_MID
+                  y: 10
                   text: "\U000F04DB"
                   text_font: icon_font
                   text_color: 0xFDA4AF
-
               - label:
-                  align: LEFT_MID
-                  x: 78
+                  align: BOTTOM_MID
+                  y: -10
+                  width: 184
                   text: "Stop Music"
-                  text_font: roboto20_font
+                  text_align: CENTER
+                  text_font: roboto18_font
                   text_color: 0xFDA4AF
+
         - obj:
             align: BOTTOM_MID
             x: -20
-            y: -12
+            y: -10
             width: 8
             height: 8
             radius: 4
@@ -2026,7 +2127,7 @@ lvgl:
 
         - obj:
             align: BOTTOM_MID
-            y: -12
+            y: -10
             width: 8
             height: 8
             radius: 4
@@ -2036,7 +2137,7 @@ lvgl:
         - obj:
             align: BOTTOM_MID
             x: 20
-            y: -12
+            y: -10
             width: 8
             height: 8
             radius: 4

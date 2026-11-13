@@ -132,6 +132,206 @@ text:
             - delay: 200ms
             - lambda: 'App.safe_reboot();'
 
+  - platform: template
+    name: "Preset 1 Name"
+    id: music_preset_1_name
+    entity_category: config
+    icon: "mdi:form-textbox"
+    mode: text
+    optimistic: true
+    restore_value: true
+    initial_value: "Preset 1"
+    min_length: 0
+    max_length: 40
+    on_value:
+      - script.execute: update_music_presets
+
+  - platform: template
+    name: "Preset 1 Icon"
+    id: music_preset_1_icon
+    entity_category: config
+    icon: "mdi:emoticon-music-outline"
+    mode: text
+    optimistic: true
+    restore_value: true
+    initial_value: "mdi:weather-sunset-up"
+    min_length: 0
+    max_length: 64
+    on_value:
+      - script.execute: update_music_presets
+
+  - platform: template
+    name: "Preset 1 URI"
+    id: music_preset_1_uri
+    entity_category: config
+    icon: "mdi:link-variant"
+    mode: text
+    optimistic: true
+    restore_value: true
+    initial_value: ""
+    min_length: 0
+    max_length: 255
+
+  - platform: template
+    name: "Preset 2 Name"
+    id: music_preset_2_name
+    entity_category: config
+    icon: "mdi:form-textbox"
+    mode: text
+    optimistic: true
+    restore_value: true
+    initial_value: "Preset 2"
+    min_length: 0
+    max_length: 40
+    on_value:
+      - script.execute: update_music_presets
+
+  - platform: template
+    name: "Preset 2 Icon"
+    id: music_preset_2_icon
+    entity_category: config
+    icon: "mdi:emoticon-music-outline"
+    mode: text
+    optimistic: true
+    restore_value: true
+    initial_value: "mdi:playlist-music"
+    min_length: 0
+    max_length: 64
+    on_value:
+      - script.execute: update_music_presets
+
+  - platform: template
+    name: "Preset 2 URI"
+    id: music_preset_2_uri
+    entity_category: config
+    icon: "mdi:link-variant"
+    mode: text
+    optimistic: true
+    restore_value: true
+    initial_value: ""
+    min_length: 0
+    max_length: 255
+
+  - platform: template
+    name: "Preset 3 Name"
+    id: music_preset_3_name
+    entity_category: config
+    icon: "mdi:form-textbox"
+    mode: text
+    optimistic: true
+    restore_value: true
+    initial_value: "Preset 3"
+    min_length: 0
+    max_length: 40
+    on_value:
+      - script.execute: update_music_presets
+
+  - platform: template
+    name: "Preset 3 Icon"
+    id: music_preset_3_icon
+    entity_category: config
+    icon: "mdi:emoticon-music-outline"
+    mode: text
+    optimistic: true
+    restore_value: true
+    initial_value: "mdi:heart"
+    min_length: 0
+    max_length: 64
+    on_value:
+      - script.execute: update_music_presets
+
+  - platform: template
+    name: "Preset 3 URI"
+    id: music_preset_3_uri
+    entity_category: config
+    icon: "mdi:link-variant"
+    mode: text
+    optimistic: true
+    restore_value: true
+    initial_value: ""
+    min_length: 0
+    max_length: 255
+
+  - platform: template
+    name: "Preset 4 Name"
+    id: music_preset_4_name
+    entity_category: config
+    icon: "mdi:form-textbox"
+    mode: text
+    optimistic: true
+    restore_value: true
+    initial_value: "Preset 4"
+    min_length: 0
+    max_length: 40
+    on_value:
+      - script.execute: update_music_presets
+
+  - platform: template
+    name: "Preset 4 Icon"
+    id: music_preset_4_icon
+    entity_category: config
+    icon: "mdi:emoticon-music-outline"
+    mode: text
+    optimistic: true
+    restore_value: true
+    initial_value: "mdi:headphones"
+    min_length: 0
+    max_length: 64
+    on_value:
+      - script.execute: update_music_presets
+
+  - platform: template
+    name: "Preset 4 URI"
+    id: music_preset_4_uri
+    entity_category: config
+    icon: "mdi:link-variant"
+    mode: text
+    optimistic: true
+    restore_value: true
+    initial_value: ""
+    min_length: 0
+    max_length: 255
+
+  - platform: template
+    name: "Preset 5 Name"
+    id: music_preset_5_name
+    entity_category: config
+    icon: "mdi:form-textbox"
+    mode: text
+    optimistic: true
+    restore_value: true
+    initial_value: "Preset 5"
+    min_length: 0
+    max_length: 40
+    on_value:
+      - script.execute: update_music_presets
+
+  - platform: template
+    name: "Preset 5 Icon"
+    id: music_preset_5_icon
+    entity_category: config
+    icon: "mdi:emoticon-music-outline"
+    mode: text
+    optimistic: true
+    restore_value: true
+    initial_value: "mdi:music-note"
+    min_length: 0
+    max_length: 64
+    on_value:
+      - script.execute: update_music_presets
+
+  - platform: template
+    name: "Preset 5 URI"
+    id: music_preset_5_uri
+    entity_category: config
+    icon: "mdi:link-variant"
+    mode: text
+    optimistic: true
+    restore_value: true
+    initial_value: ""
+    min_length: 0
+    max_length: 255
+
 text_sensor:
   - platform: template
     id: media_title_sensor
@@ -235,6 +435,80 @@ interval:
       - script.execute: reconcile_volume_feedback
 
 script:
+  - id: update_music_presets
+    mode: restart
+    then:
+      - lambda: |-
+          // Only these runtime names can be rendered because their glyphs are
+          // compiled into icon_font. Unknown names safely use mdi:music.
+          auto preset_icon = [](std::string name) -> const char * {
+            const size_t first = name.find_first_not_of(" \t\r\n");
+            if (first == std::string::npos) name.clear();
+            else name = name.substr(first, name.find_last_not_of(" \t\r\n") - first + 1);
+            for (char &ch : name) {
+              if (ch >= 'A' && ch <= 'Z') ch += 'a' - 'A';
+            }
+            if (name == "mdi:playlist-music") return "\U000F0CB8";
+            if (name == "mdi:weather-sunset-up") return "\U000F059C";
+            if (name == "mdi:heart") return "\U000F02D1";
+            if (name == "mdi:music-note") return "\U000F0387";
+            if (name == "mdi:headphones") return "\U000F02CB";
+            if (name == "mdi:coffee") return "\U000F0176";
+            if (name == "mdi:weather-night") return "\U000F0594";
+            return "\U000F075A";
+          };
+          if (id(music_preset_1_label) == nullptr) return;
+          lv_label_set_text(id(music_preset_1_label), id(music_preset_1_name).state.empty() ? "Preset 1" : id(music_preset_1_name).state.c_str());
+          lv_label_set_text(id(music_preset_1_icon_label), preset_icon(id(music_preset_1_icon).state));
+          lv_label_set_text(id(music_preset_2_label), id(music_preset_2_name).state.empty() ? "Preset 2" : id(music_preset_2_name).state.c_str());
+          lv_label_set_text(id(music_preset_2_icon_label), preset_icon(id(music_preset_2_icon).state));
+          lv_label_set_text(id(music_preset_3_label), id(music_preset_3_name).state.empty() ? "Preset 3" : id(music_preset_3_name).state.c_str());
+          lv_label_set_text(id(music_preset_3_icon_label), preset_icon(id(music_preset_3_icon).state));
+          lv_label_set_text(id(music_preset_4_label), id(music_preset_4_name).state.empty() ? "Preset 4" : id(music_preset_4_name).state.c_str());
+          lv_label_set_text(id(music_preset_4_icon_label), preset_icon(id(music_preset_4_icon).state));
+          lv_label_set_text(id(music_preset_5_label), id(music_preset_5_name).state.empty() ? "Preset 5" : id(music_preset_5_name).state.c_str());
+          lv_label_set_text(id(music_preset_5_icon_label), preset_icon(id(music_preset_5_icon).state));
+
+  - id: play_music_preset
+    mode: queued
+    parameters:
+      uri: string
+    then:
+      - if:
+          condition:
+            lambda: |-
+              return id(media_player_entity).state.rfind("media_player.", 0) == 0
+                  && !uri.empty();
+          then:
+            - homeassistant.service:
+                service: music_assistant.play_media
+                variables:
+                  target: !lambda 'return id(media_player_entity).state;'
+                  preset_uri: !lambda 'return uri;'
+                data_template:
+                  entity_id: "{{ target }}"
+                  media_id: "{{ preset_uri }}"
+                  media_type: playlist
+                  enqueue: replace
+          else:
+            - logger.log:
+                level: WARN
+                tag: music_presets
+                format: "Preset ignored: configure a URI and valid Media Player"
+
+  - id: stop_music
+    then:
+      - if:
+          condition:
+            lambda: 'return id(media_player_entity).state.rfind("media_player.", 0) == 0;'
+          then:
+            - homeassistant.service:
+                service: media_player.media_stop
+                variables:
+                  target: !lambda 'return id(media_player_entity).state;'
+                data_template:
+                  entity_id: "{{ target }}"
+
   - id: subscribe_selected_media_player
     mode: restart
     then:

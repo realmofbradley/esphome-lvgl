@@ -31,6 +31,11 @@ font:
       "\U000F0594",  # mdi-weather-night
       "\U000F0438",  # mdi-radiator
       "\U000F075A",  # mdi-music
+      "\U000F0CB8",  # mdi-playlist-music
+      "\U000F059C",  # mdi-weather-sunset-up
+      "\U000F0387",  # mdi-music-note
+      "\U000F02CB",  # mdi-headphones
+      "\U000F0176",  # mdi-coffee
       "\U000F040A",  # mdi-play
       "\U000F03E4",  # mdi-pause
       "\U000F04AE",  # mdi-skip-previous

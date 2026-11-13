@@ -89,6 +89,27 @@ the Bathroom Controls and Music Presets pages remain in the existing swipe
 order. Paused artwork stays visible, while idle/off returns to weather after a
 30-second grace period.
 
+
+### Music presets
+
+The Music page has five runtime-configurable Music Assistant presets and a fixed
+**Stop Music** tile. In the device's Home Assistant **Configuration** entities,
+set **Preset 1 Name**, **Preset 1 Icon**, and **Preset 1 URI**, then repeat for
+presets 2 through 5. Values are stored on the display and survive reboots; a
+firmware rebuild is not required.
+
+A preset sends its URI unchanged to `music_assistant.play_media` for the
+configured **Media Player**, with `media_type: playlist` and
+`enqueue: replace`. The stop tile sends `media_player.media_stop` to the
+same player.
+
+Runtime icons are intentionally limited to glyphs compiled into the firmware.
+Supported names are `mdi:music`, `mdi:playlist-music`,
+`mdi:weather-sunset-up`, `mdi:heart`, `mdi:music-note`,
+`mdi:headphones`, `mdi:coffee`, and `mdi:weather-night`. Matching is
+case-insensitive and ignores surrounding whitespace. Any other value falls
+back to `mdi:music`.
+
 Multi-speaker controls use the same `sensor.speaker_group` data contract as
 `jtenniswood/esphome-media-player`: its `data` attribute contains
 `ids|names|volumes|manufacturers`. If that helper sensor is absent, the panel
