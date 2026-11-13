@@ -1428,9 +1428,11 @@ lvgl:
       scrollbar_mode: "off"
 
       on_swipe_right:
+        - lambda: 'id(bathroom_controls_last_swipe) = millis();'
         - lvgl.page.previous:
 
       on_swipe_left:
+        - lambda: 'id(bathroom_controls_last_swipe) = millis();'
         - lvgl.page.next:
 
       widgets:
@@ -1469,7 +1471,11 @@ lvgl:
             scrollable: false
             scrollbar_mode: "off"
             on_click:
-              - script.execute: toggle_bathroom_light
+              - if:
+                  condition:
+                    lambda: 'return (uint32_t) (millis() - id(bathroom_controls_last_swipe)) >= 350;'
+                  then:
+                    - script.execute: toggle_bathroom_light
 
             widgets:
               - label:
@@ -1515,7 +1521,11 @@ lvgl:
             scrollable: false
             scrollbar_mode: "off"
             on_click:
-              - script.execute: toggle_bathroom_fan
+              - if:
+                  condition:
+                    lambda: 'return (uint32_t) (millis() - id(bathroom_controls_last_swipe)) >= 350;'
+                  then:
+                    - script.execute: toggle_bathroom_fan
 
             widgets:
               - label:
@@ -1561,7 +1571,11 @@ lvgl:
             scrollable: false
             scrollbar_mode: "off"
             on_click:
-              - script.execute: press_bathroom_night
+              - if:
+                  condition:
+                    lambda: 'return (uint32_t) (millis() - id(bathroom_controls_last_swipe)) >= 350;'
+                  then:
+                    - script.execute: press_bathroom_night
 
             widgets:
               - label:
@@ -1605,7 +1619,11 @@ lvgl:
             scrollable: false
             scrollbar_mode: "off"
             on_click:
-              - script.execute: show_bathroom_heat_controls
+              - if:
+                  condition:
+                    lambda: 'return (uint32_t) (millis() - id(bathroom_controls_last_swipe)) >= 350;'
+                  then:
+                    - script.execute: show_bathroom_heat_controls
 
             widgets:
               - label:

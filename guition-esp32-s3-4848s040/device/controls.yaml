@@ -13,6 +13,9 @@ globals:
   - id: bathroom_controls_subscription_generation
     type: int
     initial_value: '0'
+  - id: bathroom_controls_last_swipe
+    type: uint32_t
+    initial_value: '0'
   - id: bathroom_heat_target_value
     type: float
     initial_value: 'NAN'
