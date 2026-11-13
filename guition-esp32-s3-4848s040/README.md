@@ -32,13 +32,17 @@ Customize for your setup by editing the YAML files under `device/`, `addon/`, an
 ## Required settings
 
 Set these in the `substitutions:` block of `esphome.yaml`. The build stops
-with an error if either is missing.
+with an error if any is missing.
 
 - `ha_base_url`: your Home Assistant address, for example
   `http://192.168.1.100:8123` (no trailing slash). The display downloads
   weather backgrounds and album artwork from it.
 - `weather_entity`: the Home Assistant weather entity shown on the ambient
   face, for example `weather.forecast_home`.
+- `bathroom_temperature_entity`: the Home Assistant temperature sensor shown
+  in the Bathroom climate pill, for example `sensor.bathroom_temperature`.
+- `bathroom_humidity_entity`: the Home Assistant humidity sensor shown in the
+  Bathroom climate pill, for example `sensor.bathroom_humidity`.
 
 ## Weather backgrounds
 

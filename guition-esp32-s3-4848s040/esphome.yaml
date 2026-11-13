@@ -8,6 +8,9 @@ substitutions:
   ha_base_url: "http://192.168.1.100:8123"
   # Home Assistant weather entity for the ambient face. Required.
   weather_entity: "weather.forecast_home"
+  # Home Assistant sensors shown in the Bathroom climate pill. Required.
+  bathroom_temperature_entity: "sensor.YOUR_TEMPERATURE_SENSOR"
+  bathroom_humidity_entity: "sensor.YOUR_HUMIDITY_SENSOR"
 
 # Wifi Setup
 wifi:
