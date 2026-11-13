@@ -17,8 +17,9 @@ script:
   - id: update_bathroom_climate
     then:
       - lambda: |-
-          // Home Assistant can publish before LVGL has created the label.
-          if (id(bathroom_climate) == nullptr) return;
+          // Home Assistant can publish before LVGL has created either label.
+          if (id(bathroom_climate) == nullptr &&
+              id(bathroom_controls_climate) == nullptr) return;
           char temperature[64] = "--.-°";
           char humidity[16] = "--%";
           if (id(bathroom_temperature_sensor).has_state() &&
@@ -34,7 +35,12 @@ script:
                      id(bathroom_humidity_sensor).state);
           }
           const std::string label = std::string(temperature) + "  ·  " + humidity;
-          lv_label_set_text(id(bathroom_climate), label.c_str());
+          if (id(bathroom_climate) != nullptr) {
+            lv_label_set_text(id(bathroom_climate), label.c_str());
+          }
+          if (id(bathroom_controls_climate) != nullptr) {
+            lv_label_set_text(id(bathroom_controls_climate), label.c_str());
+          }
 
   - id: update_weather_icon
     then:

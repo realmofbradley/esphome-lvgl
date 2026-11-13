@@ -43,6 +43,15 @@ with an error if any is missing.
   in the Bathroom climate pill, for example `sensor.bathroom_temperature`.
 - `bathroom_humidity_entity`: the Home Assistant humidity sensor shown in the
   Bathroom climate pill, for example `sensor.bathroom_humidity`.
+- `bathroom_light_entity`: the Bathroom light controlled by the Lights
+  tile, for example `light.bathroom`.
+- `bathroom_fan_entity`: the Bathroom fan controlled by the Fan tile,
+  for example `fan.bathroom`.
+- `bathroom_night_entity`: a Home Assistant `button.*` helper pressed by the
+  momentary Night tile, for example `button.bathroom_night`.
+- `bathroom_heat_entity`: the climate entity shown on the dedicated
+  heating controller, for example `climate.bathroom_heater`. It is safe for
+  this entity to be unavailable while the heater is offline.
 
 ## Weather backgrounds
 

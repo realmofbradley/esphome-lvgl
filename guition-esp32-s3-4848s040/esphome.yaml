@@ -11,6 +11,11 @@ substitutions:
   # Home Assistant sensors shown in the Bathroom climate pill. Required.
   bathroom_temperature_entity: "sensor.YOUR_TEMPERATURE_SENSOR"
   bathroom_humidity_entity: "sensor.YOUR_HUMIDITY_SENSOR"
+  # Home Assistant entities used by the Bathroom Controls page.
+  bathroom_light_entity: "light.YOUR_BATHROOM_LIGHT"
+  bathroom_fan_entity: "fan.YOUR_BATHROOM_FAN"
+  bathroom_night_entity: "button.YOUR_NIGHT_TRIGGER"
+  bathroom_heat_entity: "climate.YOUR_HEATER"
 
 # Wifi Setup
 wifi:

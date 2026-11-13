@@ -1423,6 +1423,9 @@ lvgl:
     # ==========================================================
     - id: controls_page
       bg_color: 0x101318
+      pad_all: 0
+      scrollable: false
+      scrollbar_mode: "off"
 
       on_swipe_right:
         - lvgl.page.previous:
@@ -1441,10 +1444,11 @@ lvgl:
             text_color: 0xFFFFFF
 
         - label:
+            id: bathroom_controls_climate
             align: TOP_RIGHT
             x: -28
             y: 34
-            text: "22.4°  47%"
+            text: "--.-°  ·  --%"
             text_font: roboto20_font
             text_color: 0xAAB4C0
 
@@ -1462,9 +1466,14 @@ lvgl:
             border_width: 1
             border_color: 0x323B46
             shadow_width: 0
+            scrollable: false
+            scrollbar_mode: "off"
+            on_click:
+              - script.execute: toggle_bathroom_light
 
             widgets:
               - label:
+                  id: bathroom_light_icon
                   align: TOP_LEFT
                   x: 18
                   y: 8
@@ -1481,12 +1490,13 @@ lvgl:
                   text_color: 0xFFFFFF
 
               - label:
+                  id: bathroom_light_status
                   align: BOTTOM_LEFT
                   x: 18
                   y: -10
-                  text: "On"
+                  text: "Unavailable"
                   text_font: roboto16_font
-                  text_color: 0xAAB4C0
+                  text_color: 0x7B8794
 
         # ------------------------------------------------------
         # Fan
@@ -1502,9 +1512,14 @@ lvgl:
             border_width: 1
             border_color: 0x323B46
             shadow_width: 0
+            scrollable: false
+            scrollbar_mode: "off"
+            on_click:
+              - script.execute: toggle_bathroom_fan
 
             widgets:
               - label:
+                  id: bathroom_fan_icon
                   align: TOP_LEFT
                   x: 18
                   y: 8
@@ -1521,15 +1536,16 @@ lvgl:
                   text_color: 0xFFFFFF
 
               - label:
+                  id: bathroom_fan_status
                   align: BOTTOM_LEFT
                   x: 18
                   y: -10
-                  text: "Auto"
+                  text: "Unavailable"
                   text_font: roboto16_font
-                  text_color: 0xAAB4C0
+                  text_color: 0x7B8794
 
         # ------------------------------------------------------
-        # Night
+        # Night — momentary Home Assistant button
         # ------------------------------------------------------
         - button:
             id: bathroom_night_button
@@ -1542,6 +1558,10 @@ lvgl:
             border_width: 1
             border_color: 0x323B46
             shadow_width: 0
+            scrollable: false
+            scrollbar_mode: "off"
+            on_click:
+              - script.execute: press_bathroom_night
 
             widgets:
               - label:
@@ -1564,12 +1584,12 @@ lvgl:
                   align: BOTTOM_LEFT
                   x: 18
                   y: -10
-                  text: "Scene"
+                  text: "Press"
                   text_font: roboto16_font
                   text_color: 0xAAB4C0
 
         # ------------------------------------------------------
-        # Heat
+        # Heat — opens the dedicated controller below
         # ------------------------------------------------------
         - button:
             id: bathroom_heat_button
@@ -1582,6 +1602,10 @@ lvgl:
             border_width: 1
             border_color: 0x323B46
             shadow_width: 0
+            scrollable: false
+            scrollbar_mode: "off"
+            on_click:
+              - script.execute: show_bathroom_heat_controls
 
             widgets:
               - label:
@@ -1601,12 +1625,14 @@ lvgl:
                   text_color: 0xFFFFFF
 
               - label:
+                  id: bathroom_heat_tile_status
                   align: BOTTOM_LEFT
                   x: 18
                   y: -10
-                  text: "Off"
+                  text: "Unavailable"
                   text_font: roboto16_font
-                  text_color: 0xAAB4C0
+                  text_color: 0x7B8794
+
         - obj:
             align: BOTTOM_MID
             x: -20
@@ -1635,6 +1661,197 @@ lvgl:
             radius: 4
             bg_color: 0x59636F
             border_width: 0
+
+        # ------------------------------------------------------
+        # Dedicated 480x480 heating controller overlay
+        # ------------------------------------------------------
+        - obj:
+            id: bathroom_heat_screen
+            x: 0
+            y: 0
+            width: 480
+            height: 480
+            pad_all: 0
+            radius: 0
+            border_width: 0
+            bg_color: 0x101318
+            hidden: true
+            clickable: true
+            event_bubble: false
+            gesture_bubble: false
+            scrollable: false
+            scrollbar_mode: "off"
+            widgets:
+              - label:
+                  x: 28
+                  y: 24
+                  text: "Heating"
+                  text_font: roboto36_font
+                  text_color: 0xFFFFFF
+
+              - button:
+                  id: bathroom_heat_close_button
+                  x: 404
+                  y: 20
+                  width: 52
+                  height: 52
+                  radius: 20
+                  bg_color: 0x252A31
+                  border_width: 0
+                  shadow_width: 0
+                  scrollable: false
+                  scrollbar_mode: "off"
+                  on_click:
+                    - script.execute: hide_bathroom_heat_controls
+                  widgets:
+                    - label:
+                        align: CENTER
+                        text: "\U000F0156"
+                        text_font: icon_font
+                        text_color: 0xFFFFFF
+
+              - label:
+                  id: bathroom_heat_mode_label
+                  x: 28
+                  y: 82
+                  width: 424
+                  height: 28
+                  text: "Heater unavailable"
+                  text_align: CENTER
+                  text_font: roboto18_font
+                  text_color: 0xAAB4C0
+
+              - obj:
+                  x: 28
+                  y: 124
+                  width: 202
+                  height: 104
+                  radius: 22
+                  bg_color: 0x1D232B
+                  border_width: 1
+                  border_color: 0x323B46
+                  scrollable: false
+                  scrollbar_mode: "off"
+                  widgets:
+                    - label:
+                        align: TOP_MID
+                        y: 14
+                        text: "Room"
+                        text_font: roboto16_font
+                        text_color: 0x8E99A6
+                    - label:
+                        id: bathroom_heat_current_label
+                        align: BOTTOM_MID
+                        y: -14
+                        text: "--.-°"
+                        text_font: roboto36_font
+                        text_color: 0xFFFFFF
+
+              - obj:
+                  x: 250
+                  y: 124
+                  width: 202
+                  height: 104
+                  radius: 22
+                  bg_color: 0x1D232B
+                  border_width: 1
+                  border_color: 0x323B46
+                  scrollable: false
+                  scrollbar_mode: "off"
+                  widgets:
+                    - label:
+                        align: TOP_MID
+                        y: 14
+                        text: "Target"
+                        text_font: roboto16_font
+                        text_color: 0x8E99A6
+                    - label:
+                        id: bathroom_heat_target_label
+                        align: BOTTOM_MID
+                        y: -14
+                        text: "--.-°"
+                        text_font: roboto36_font
+                        text_color: 0xFFFFFF
+
+              - button:
+                  id: bathroom_heat_down_button
+                  x: 28
+                  y: 258
+                  width: 128
+                  height: 96
+                  radius: 28
+                  bg_color: 0x252A31
+                  border_width: 1
+                  border_color: 0x3A444F
+                  shadow_width: 0
+                  scrollable: false
+                  scrollbar_mode: "off"
+                  on_click:
+                    - script.execute:
+                        id: change_bathroom_heat_target
+                        direction: -1
+                  widgets:
+                    - label:
+                        align: CENTER
+                        text: "−"
+                        text_font: roboto48_font
+                        text_color: 0xFFFFFF
+
+              - label:
+                  x: 170
+                  y: 290
+                  width: 140
+                  height: 32
+                  text: "Set temp"
+                  text_align: CENTER
+                  text_font: roboto20_font
+                  text_color: 0xAAB4C0
+
+              - button:
+                  id: bathroom_heat_up_button
+                  x: 324
+                  y: 258
+                  width: 128
+                  height: 96
+                  radius: 28
+                  bg_color: 0x3A291F
+                  border_width: 1
+                  border_color: 0x70452A
+                  shadow_width: 0
+                  scrollable: false
+                  scrollbar_mode: "off"
+                  on_click:
+                    - script.execute:
+                        id: change_bathroom_heat_target
+                        direction: 1
+                  widgets:
+                    - label:
+                        align: CENTER
+                        text: "+"
+                        text_font: roboto48_font
+                        text_color: 0xFB923C
+
+              - button:
+                  id: bathroom_heat_back_button
+                  x: 28
+                  y: 386
+                  width: 424
+                  height: 64
+                  radius: 22
+                  bg_color: 0x252A31
+                  border_width: 1
+                  border_color: 0x3A444F
+                  shadow_width: 0
+                  scrollable: false
+                  scrollbar_mode: "off"
+                  on_click:
+                    - script.execute: hide_bathroom_heat_controls
+                  widgets:
+                    - label:
+                        align: CENTER
+                        text: "Back to Bathroom"
+                        text_font: roboto20_font
+                        text_color: 0xFFFFFF
 
 
     # ==========================================================

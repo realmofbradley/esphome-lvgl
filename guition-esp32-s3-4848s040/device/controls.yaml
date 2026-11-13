@@ -1,0 +1,264 @@
+# Bathroom controls use runtime Native API subscriptions, matching the media
+# integration without coupling their subscription generations or callbacks.
+
+esphome:
+  on_boot:
+    - priority: -100
+      then:
+        - delay: 2s
+        - script.execute: update_bathroom_climate
+        - script.execute: update_bathroom_controls_ui
+
+globals:
+  - id: bathroom_controls_subscription_generation
+    type: int
+    initial_value: '0'
+  - id: bathroom_heat_target_value
+    type: float
+    initial_value: 'NAN'
+  - id: bathroom_heat_current_value
+    type: float
+    initial_value: 'NAN'
+
+api:
+  on_client_connected:
+    - if:
+        condition:
+          lambda: 'return client_info.find("Home Assistant") != std::string::npos;'
+        then:
+          - script.execute: subscribe_bathroom_controls
+
+text_sensor:
+  - platform: template
+    id: bathroom_light_state
+    internal: true
+    on_value:
+      - script.execute: update_bathroom_controls_ui
+
+  - platform: template
+    id: bathroom_fan_state
+    internal: true
+    on_value:
+      - script.execute: update_bathroom_controls_ui
+
+  - platform: template
+    id: bathroom_heat_state
+    internal: true
+    on_value:
+      - script.execute: update_bathroom_controls_ui
+
+  - platform: template
+    id: bathroom_heat_action
+    internal: true
+    on_value:
+      - script.execute: update_bathroom_controls_ui
+
+sensor:
+  - platform: template
+    id: bathroom_heat_current_sensor
+    internal: true
+    on_value:
+      - lambda: 'id(bathroom_heat_current_value) = x;'
+      - script.execute: update_bathroom_controls_ui
+
+  - platform: template
+    id: bathroom_heat_target_sensor
+    internal: true
+    on_value:
+      - lambda: 'id(bathroom_heat_target_value) = x;'
+      - script.execute: update_bathroom_controls_ui
+
+script:
+  - id: subscribe_bathroom_controls
+    mode: restart
+    then:
+      - lambda: |-
+          if (esphome::api::global_api_server == nullptr) return;
+
+          id(bathroom_controls_subscription_generation)++;
+          const int generation = id(bathroom_controls_subscription_generation);
+          int *generation_ptr = &id(bathroom_controls_subscription_generation);
+          auto *api_server = esphome::api::global_api_server;
+          using state_cb = std::function<void(esphome::StringRef)>;
+
+          id(bathroom_light_state).publish_state("");
+          id(bathroom_fan_state).publish_state("");
+          id(bathroom_heat_state).publish_state("");
+          id(bathroom_heat_action).publish_state("");
+          id(bathroom_heat_current_sensor).publish_state(NAN);
+          id(bathroom_heat_target_sensor).publish_state(NAN);
+
+          auto sub_text = [&](const std::string &entity,
+                              const std::string &attribute,
+                              esphome::text_sensor::TextSensor *sensor) {
+            api_server->subscribe_home_assistant_state(
+                entity, esphome::optional<std::string>(attribute),
+                state_cb([generation, generation_ptr, sensor](esphome::StringRef state) {
+                  if (generation == *generation_ptr) sensor->publish_state(state.str());
+                }));
+          };
+          auto sub_number = [&](const std::string &entity,
+                                const std::string &attribute,
+                                esphome::sensor::Sensor *sensor) {
+            api_server->subscribe_home_assistant_state(
+                entity, esphome::optional<std::string>(attribute),
+                state_cb([generation, generation_ptr, sensor](esphome::StringRef state) {
+                  if (generation != *generation_ptr) return;
+                  auto parsed = esphome::parse_number<float>(state.str());
+                  sensor->publish_state(parsed.has_value() ? parsed.value() : NAN);
+                }));
+          };
+
+          sub_text("${bathroom_light_entity}", "", id(bathroom_light_state));
+          sub_text("${bathroom_fan_entity}", "", id(bathroom_fan_state));
+          sub_text("${bathroom_heat_entity}", "", id(bathroom_heat_state));
+          sub_text("${bathroom_heat_entity}", "hvac_action", id(bathroom_heat_action));
+          sub_number("${bathroom_heat_entity}", "current_temperature",
+                     id(bathroom_heat_current_sensor));
+          sub_number("${bathroom_heat_entity}", "temperature",
+                     id(bathroom_heat_target_sensor));
+          ESP_LOGI("bathroom", "Subscribed to Bathroom control entities");
+
+  - id: update_bathroom_controls_ui
+    mode: restart
+    then:
+      - lambda: |-
+          // HA callbacks can arrive before LVGL creates the Bathroom widgets.
+          if (id(bathroom_light_button) == nullptr) return;
+
+          const std::string light = id(bathroom_light_state).has_state()
+              ? id(bathroom_light_state).state : "";
+          const bool light_on = light == "on";
+          const bool light_known = light == "on" || light == "off";
+          lv_label_set_text(id(bathroom_light_status),
+                            light_on ? "On" : light_known ? "Off" : "Unavailable");
+          lv_obj_set_style_bg_color(id(bathroom_light_button),
+              lv_color_hex(light_on ? 0x453A1E : 0x1D232B), 0);
+          lv_obj_set_style_border_color(id(bathroom_light_button),
+              lv_color_hex(light_on ? 0xFFD166 : 0x323B46), 0);
+          lv_obj_set_style_text_color(id(bathroom_light_status),
+              lv_color_hex(light_known ? (light_on ? 0xFFD166 : 0xAAB4C0) : 0x7B8794), 0);
+
+          const std::string fan = id(bathroom_fan_state).has_state()
+              ? id(bathroom_fan_state).state : "";
+          const bool fan_on = fan == "on";
+          const bool fan_known = fan == "on" || fan == "off";
+          lv_label_set_text(id(bathroom_fan_status),
+                            fan_on ? "On" : fan_known ? "Off" : "Unavailable");
+          lv_obj_set_style_bg_color(id(bathroom_fan_button),
+              lv_color_hex(fan_on ? 0x173744 : 0x1D232B), 0);
+          lv_obj_set_style_border_color(id(bathroom_fan_button),
+              lv_color_hex(fan_on ? 0x7DD3FC : 0x323B46), 0);
+          lv_obj_set_style_text_color(id(bathroom_fan_status),
+              lv_color_hex(fan_known ? (fan_on ? 0x7DD3FC : 0xAAB4C0) : 0x7B8794), 0);
+
+          const std::string heat = id(bathroom_heat_state).has_state()
+              ? id(bathroom_heat_state).state : "";
+          const bool heat_available = !heat.empty() && heat != "unknown" && heat != "unavailable";
+          std::string heat_title = heat_available ? heat : "Unavailable";
+          if (!heat_title.empty()) heat_title[0] = std::toupper((unsigned char) heat_title[0]);
+          lv_label_set_text(id(bathroom_heat_tile_status), heat_title.c_str());
+          lv_obj_set_style_text_color(id(bathroom_heat_tile_status),
+              lv_color_hex(heat_available ? 0xAAB4C0 : 0x7B8794), 0);
+
+          char current[16] = "--.-°";
+          float room = id(bathroom_heat_current_value);
+          if (!std::isfinite(room) && id(bathroom_temperature_sensor).has_state()) {
+            room = id(bathroom_temperature_sensor).state;
+          }
+          if (std::isfinite(room)) snprintf(current, sizeof(current), "%.1f°", room);
+          lv_label_set_text(id(bathroom_heat_current_label), current);
+
+          char target[16] = "--.-°";
+          if (std::isfinite(id(bathroom_heat_target_value))) {
+            snprintf(target, sizeof(target), "%.1f°", id(bathroom_heat_target_value));
+          }
+          lv_label_set_text(id(bathroom_heat_target_label), target);
+
+          std::string action = id(bathroom_heat_action).has_state()
+              ? id(bathroom_heat_action).state : "";
+          if (!action.empty() && action != "unknown" && action != "unavailable") {
+            action[0] = std::toupper((unsigned char) action[0]);
+          } else {
+            action.clear();
+          }
+          std::string mode_label = heat_available ? "Mode: " + heat_title : "Heater unavailable";
+          if (!action.empty() && action != heat_title) mode_label += "  ·  " + action;
+          lv_label_set_text(id(bathroom_heat_mode_label), mode_label.c_str());
+
+          const bool can_adjust = heat_available &&
+              (std::isfinite(id(bathroom_heat_target_value)) || std::isfinite(room));
+          if (can_adjust) {
+            lv_obj_clear_state(id(bathroom_heat_down_button), LV_STATE_DISABLED);
+            lv_obj_clear_state(id(bathroom_heat_up_button), LV_STATE_DISABLED);
+          } else {
+            lv_obj_add_state(id(bathroom_heat_down_button), LV_STATE_DISABLED);
+            lv_obj_add_state(id(bathroom_heat_up_button), LV_STATE_DISABLED);
+          }
+
+  - id: toggle_bathroom_light
+    then:
+      - homeassistant.service:
+          service: light.toggle
+          data:
+            entity_id: ${bathroom_light_entity}
+
+  - id: toggle_bathroom_fan
+    then:
+      - homeassistant.service:
+          service: fan.toggle
+          data:
+            entity_id: ${bathroom_fan_entity}
+
+  - id: press_bathroom_night
+    then:
+      - homeassistant.service:
+          service: button.press
+          data:
+            entity_id: ${bathroom_night_entity}
+
+  - id: show_bathroom_heat_controls
+    then:
+      - script.execute: update_bathroom_controls_ui
+      - lvgl.widget.show: bathroom_heat_screen
+      - lambda: 'lv_obj_move_foreground(id(bathroom_heat_screen));'
+
+  - id: hide_bathroom_heat_controls
+    then:
+      - lvgl.widget.hide: bathroom_heat_screen
+
+  - id: change_bathroom_heat_target
+    mode: restart
+    parameters:
+      direction: int
+    then:
+      - if:
+          condition:
+            lambda: |-
+              const std::string heat = id(bathroom_heat_state).has_state()
+                  ? id(bathroom_heat_state).state : "";
+              if (heat.empty() || heat == "unknown" || heat == "unavailable") return false;
+              float base = id(bathroom_heat_target_value);
+              if (!std::isfinite(base)) base = id(bathroom_heat_current_value);
+              if (!std::isfinite(base) && id(bathroom_temperature_sensor).has_state()) {
+                base = id(bathroom_temperature_sensor).state;
+              }
+              return std::isfinite(base);
+          then:
+            - lambda: |-
+                float base = id(bathroom_heat_target_value);
+                if (!std::isfinite(base)) base = id(bathroom_heat_current_value);
+                if (!std::isfinite(base)) base = id(bathroom_temperature_sensor).state;
+                float next = roundf((base + direction * 0.5f) * 2.0f) / 2.0f;
+                if (next < 5.0f) next = 5.0f;
+                if (next > 35.0f) next = 35.0f;
+                id(bathroom_heat_target_value) = next;
+            - script.execute: update_bathroom_controls_ui
+            - homeassistant.service:
+                service: climate.set_temperature
+                variables:
+                  target: !lambda 'return std::string("${bathroom_heat_entity}");'
+                  requested_temperature: !lambda 'return id(bathroom_heat_target_value);'
+                data_template:
+                  entity_id: "{{ target }}"
+                  temperature: "{{ requested_temperature }}"
