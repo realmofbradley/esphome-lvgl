@@ -29,6 +29,33 @@ guition-esp32-s3-4848s040/
 
 Customize for your setup by editing the YAML files under `device/`, `addon/`, and `theme/`. See the [main README](../README.md) for full quick start and ESPHome setup.
 
+## Home Assistant URL
+
+Set `ha_base_url` in the `substitutions:` block of `esphome.yaml` to your Home
+Assistant address, for example `http://192.168.1.100:8123` (no trailing
+slash). The display downloads weather backgrounds and album artwork from it.
+The build stops with an error if it is not set.
+
+## Weather backgrounds
+
+The background images are **not** compiled into the firmware: at 480x480 they
+are too large to fit alongside everything else in flash. The display
+downloads them at runtime from Home Assistant instead, so you must copy them
+there yourself:
+
+1. Copy every `.jpg` from [assets/backgrounds/](assets/backgrounds/) into
+   `/config/www/guition/backgrounds/` on your Home Assistant host (create
+   the folders if needed). Keep the filenames unchanged.
+2. If `www` did not exist before, restart Home Assistant so it starts serving
+   it.
+3. Check by opening
+   `http://<your-ha-address>:8123/local/guition/backgrounds/clear-day.jpg`
+   in a browser.
+
+Files in `www` are served at `/local/` without login, so don't put anything
+private in that folder. If the images are missing, the weather face still
+works but shows no background.
+
 ## Media setup
 
 After the device connects to Home Assistant, set its **Media Player** text

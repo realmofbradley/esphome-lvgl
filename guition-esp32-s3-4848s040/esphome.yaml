@@ -1,8 +1,11 @@
-# ESP32-S3-Touch-LCD-7
+# Guition ESP32-S3-4848S040
 substitutions:
   name: "bathroom-mini-display"
   friendly_name: "Mini Bathroom Display"
   room: "Bathroom"
+  # Home Assistant URL the display downloads backgrounds and artwork from.
+  # No trailing slash. Required: the build stops with an error if unset.
+  ha_base_url: "http://192.168.1.100:8123"
 
 # Wifi Setup
 wifi:

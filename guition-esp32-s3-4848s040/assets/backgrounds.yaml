@@ -3,7 +3,7 @@ http_request:
 image:
   - platform: online_image
     id: ambient_background_image
-    url: "http://192.168.20.15:8123/local/guition/backgrounds/clear-day.jpg"
+    url: "${ha_base_url}/local/guition/backgrounds/clear-day.jpg"
     format: JPEG
     type: RGB565
     resize: 480x480

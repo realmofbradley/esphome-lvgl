@@ -314,7 +314,7 @@ script:
                     filename = "thunderstorm.jpg";
                   }
 
-                  return "http://192.168.20.15:8123/local/guition/backgrounds/" +
+                  return std::string("${ha_base_url}/local/guition/backgrounds/") +
                          filename;
                 update: true
 

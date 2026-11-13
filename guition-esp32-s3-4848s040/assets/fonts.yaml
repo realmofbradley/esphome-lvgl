@@ -33,6 +33,10 @@ font:
     id: roboto18_font
     size: 18
     bpp: 4
+    # Media titles, artists and speaker names: include accented letters.
+    glyphsets: [GF_Latin_Core]
+    # Roboto lacks a few combining accents in this set; that is expected.
+    ignore_missing_glyphs: true
 
   - file: "gfonts://Roboto"
     id: roboto15_font
@@ -43,6 +47,10 @@ font:
     id: roboto16_font
     size: 16
     bpp: 4
+    # Media titles, artists and speaker names: include accented letters.
+    glyphsets: [GF_Latin_Core]
+    # Roboto lacks a few combining accents in this set; that is expected.
+    ignore_missing_glyphs: true
 
   - file: "gfonts://Roboto"
     id: roboto20_font
@@ -58,6 +66,10 @@ font:
     id: roboto24_font
     size: 24
     bpp: 4
+    # Media titles, artists and speaker names: include accented letters.
+    glyphsets: [GF_Latin_Core]
+    # Roboto lacks a few combining accents in this set; that is expected.
+    ignore_missing_glyphs: true
 
   - file: "gfonts://Roboto"
     id: roboto28_font
