@@ -1924,18 +1924,18 @@ lvgl:
             widgets:
               - label:
                   id: music_preset_1_icon_label
-                  align: TOP_MID
-                  y: 10
+                  align: LEFT_MID
+                  x: 16
                   text: "\U000F075A"
                   text_font: icon_font
                   text_color: 0xFFD166
               - label:
                   id: music_preset_1_label
-                  align: BOTTOM_MID
-                  y: -10
-                  width: 184
+                  align: LEFT_MID
+                  x: 68
+                  width: 124
                   text: "Preset 1"
-                  text_align: CENTER
+                  text_align: LEFT
                   long_mode: DOT
                   text_font: roboto18_font
                   text_color: 0xFFFFFF
@@ -1960,18 +1960,18 @@ lvgl:
             widgets:
               - label:
                   id: music_preset_2_icon_label
-                  align: TOP_MID
-                  y: 10
+                  align: LEFT_MID
+                  x: 16
                   text: "\U000F075A"
                   text_font: icon_font
                   text_color: 0xC4B5FD
               - label:
                   id: music_preset_2_label
-                  align: BOTTOM_MID
-                  y: -10
-                  width: 184
+                  align: LEFT_MID
+                  x: 68
+                  width: 124
                   text: "Preset 2"
-                  text_align: CENTER
+                  text_align: LEFT
                   long_mode: DOT
                   text_font: roboto18_font
                   text_color: 0xFFFFFF
@@ -1996,18 +1996,18 @@ lvgl:
             widgets:
               - label:
                   id: music_preset_3_icon_label
-                  align: TOP_MID
-                  y: 10
+                  align: LEFT_MID
+                  x: 16
                   text: "\U000F075A"
                   text_font: icon_font
                   text_color: 0xF472B6
               - label:
                   id: music_preset_3_label
-                  align: BOTTOM_MID
-                  y: -10
-                  width: 184
+                  align: LEFT_MID
+                  x: 68
+                  width: 124
                   text: "Preset 3"
-                  text_align: CENTER
+                  text_align: LEFT
                   long_mode: DOT
                   text_font: roboto18_font
                   text_color: 0xFFFFFF
@@ -2032,18 +2032,18 @@ lvgl:
             widgets:
               - label:
                   id: music_preset_4_icon_label
-                  align: TOP_MID
-                  y: 10
+                  align: LEFT_MID
+                  x: 16
                   text: "\U000F075A"
                   text_font: icon_font
                   text_color: 0x67E8F9
               - label:
                   id: music_preset_4_label
-                  align: BOTTOM_MID
-                  y: -10
-                  width: 184
+                  align: LEFT_MID
+                  x: 68
+                  width: 124
                   text: "Preset 4"
-                  text_align: CENTER
+                  text_align: LEFT
                   long_mode: DOT
                   text_font: roboto18_font
                   text_color: 0xFFFFFF
@@ -2068,18 +2068,18 @@ lvgl:
             widgets:
               - label:
                   id: music_preset_5_icon_label
-                  align: TOP_MID
-                  y: 10
+                  align: LEFT_MID
+                  x: 16
                   text: "\U000F075A"
                   text_font: icon_font
                   text_color: 0x86EFAC
               - label:
                   id: music_preset_5_label
-                  align: BOTTOM_MID
-                  y: -10
-                  width: 184
+                  align: LEFT_MID
+                  x: 68
+                  width: 124
                   text: "Preset 5"
-                  text_align: CENTER
+                  text_align: LEFT
                   long_mode: DOT
                   text_font: roboto18_font
                   text_color: 0xFFFFFF
@@ -2101,17 +2101,17 @@ lvgl:
               - script.execute: stop_music
             widgets:
               - label:
-                  align: TOP_MID
-                  y: 10
+                  align: LEFT_MID
+                  x: 16
                   text: "\U000F04DB"
                   text_font: icon_font
                   text_color: 0xFDA4AF
               - label:
-                  align: BOTTOM_MID
-                  y: -10
-                  width: 184
+                  align: LEFT_MID
+                  x: 68
+                  width: 124
                   text: "Stop Music"
-                  text_align: CENTER
+                  text_align: LEFT
                   text_font: roboto18_font
                   text_color: 0xFDA4AF
 
