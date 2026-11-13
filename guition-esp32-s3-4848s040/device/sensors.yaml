@@ -1,3 +1,54 @@
+# Bathroom entity choices are stored on the device, independently of firmware.
+# Empty values disable a side of the pill; other values must be sensor entity IDs.
+text:
+  - platform: template
+    name: "Bathroom Temperature Sensor"
+    id: bathroom_temperature_entity
+    entity_category: config
+    icon: "mdi:thermometer"
+    mode: text
+    optimistic: true
+    restore_value: true
+    initial_value: ""
+    min_length: 0
+    max_length: 100
+    pattern: '^(sensor\.[a-z0-9_]+)?$'
+    on_value:
+      - lambda: 'id(bathroom_temperature_value) = NAN;'
+      - script.execute: update_bathroom_climate
+      - script.execute:
+          id: subscribe_bathroom_sensor
+          entity: !lambda 'return x;'
+      - script.execute: persist_bathroom_sensor_settings
+
+  - platform: template
+    name: "Bathroom Humidity Sensor"
+    id: bathroom_humidity_entity
+    entity_category: config
+    icon: "mdi:water-percent"
+    mode: text
+    optimistic: true
+    restore_value: true
+    initial_value: ""
+    min_length: 0
+    max_length: 100
+    pattern: '^(sensor\.[a-z0-9_]+)?$'
+    on_value:
+      - lambda: 'id(bathroom_humidity_value) = NAN;'
+      - script.execute: update_bathroom_climate
+      - script.execute:
+          id: subscribe_bathroom_sensor
+          entity: !lambda 'return x;'
+      - script.execute: persist_bathroom_sensor_settings
+
+globals:
+  - id: bathroom_temperature_value
+    type: float
+    initial_value: 'NAN'
+  - id: bathroom_humidity_value
+    type: float
+    initial_value: 'NAN'
+
 esphome:
   on_boot:
     - priority: -100
@@ -14,6 +65,106 @@ esphome:
         - script.execute: update_weather_background
 
 script:
+  - id: persist_bathroom_sensor_settings
+    mode: restart
+    then:
+      # TemplateText saves after on_value returns. Flush on the next turn so
+      # even a subsequent reboot need not wait for the normal flash interval.
+      - delay: 250ms
+      - lambda: |-
+          if (!global_preferences->sync()) {
+            ESP_LOGW("bathroom", "Could not flush bathroom sensor settings");
+          }
+
+  - id: update_bathroom_climate
+    then:
+      - lambda: |-
+          // Restored text values can fire before LVGL has created the label.
+          if (id(bathroom_climate) == nullptr) return;
+          char temperature[64] = "--.-°";
+          char humidity[16] = "--%";
+          if (std::isfinite(id(bathroom_temperature_value))) {
+            snprintf(temperature, sizeof(temperature), "%.1f°",
+                     id(bathroom_temperature_value));
+          }
+          if (std::isfinite(id(bathroom_humidity_value))) {
+            snprintf(humidity, sizeof(humidity), "%.0f%%",
+                     id(bathroom_humidity_value));
+          }
+          const std::string label = std::string(temperature) + "  ·  " + humidity;
+          lv_label_set_text(id(bathroom_climate), label.c_str());
+
+  - id: subscribe_bathroom_sensor
+    parameters:
+      entity: string
+    then:
+      - lambda: |-
+          if (entity.empty()) return;
+          // Also enforce the entity format on-device if a client bypasses the
+          // text pattern advertised to Home Assistant.
+          if (entity.rfind("sensor.", 0) != 0 || entity.size() <= 7 ||
+              entity.find_first_not_of("abcdefghijklmnopqrstuvwxyz0123456789_", 7)
+                  != std::string::npos) {
+            ESP_LOGW("bathroom", "Bathroom sensor must be a full sensor. entity ID");
+            return;
+          }
+          auto *api_server = esphome::api::global_api_server;
+          if (api_server == nullptr) return;
+
+          // The API has no unsubscribe method. Register each distinct entity
+          // only once per boot, and ignore it whenever it is no longer selected.
+          // Sharing this list also handles both fields choosing the same entity.
+          static std::vector<std::string> registered_entities;
+          bool already_registered = false;
+          for (const auto &registered : registered_entities) {
+            if (registered == entity) {
+              already_registered = true;
+              break;
+            }
+          }
+          if (!already_registered) {
+            using state_cb = std::function<void(esphome::StringRef)>;
+            api_server->subscribe_home_assistant_state(
+                entity, esphome::optional<std::string>(""),
+                state_cb([entity](esphome::StringRef state) {
+                  const bool temperature_selected =
+                      id(bathroom_temperature_entity).state == entity;
+                  const bool humidity_selected =
+                      id(bathroom_humidity_entity).state == entity;
+                  if (!temperature_selected && !humidity_selected) return;
+
+                  auto parsed = esphome::parse_number<float>(state.str());
+                  const float value = parsed.has_value() && std::isfinite(parsed.value())
+                      ? parsed.value() : NAN;
+                  if (temperature_selected) id(bathroom_temperature_value) = value;
+                  if (humidity_selected) {
+                    id(bathroom_humidity_value) =
+                        value >= 0.0f && value <= 100.0f ? value : NAN;
+                  }
+                  id(update_bathroom_climate).execute();
+                }));
+            registered_entities.push_back(entity);
+          }
+
+          // Registration alone is advertised on the next API connection.
+          // Tell an already connected HA client now, without rebooting.
+          // A previously registered entity only needs a fresh state request;
+          // once=true avoids adding another HA listener when reselecting it.
+          for (const auto &client : api_server->active_clients()) {
+            if (client->is_marked_for_removal() || !client->is_authenticated() ||
+                std::string(client->get_name()).find("Home Assistant")
+                    == std::string::npos) continue;
+            esphome::api::SubscribeHomeAssistantStateResponse request;
+            request.entity_id = esphome::StringRef(entity);
+            request.once = already_registered;
+            if (!client->send_message(request)) {
+              // A full transmit buffer must not silently lose the selection.
+              // Reconnecting renegotiates registered subscriptions, no reboot.
+              ESP_LOGW("bathroom", "Subscription send failed; reconnecting HA");
+              client->on_fatal_error();
+            }
+          }
+
   - id: update_weather_icon
     then:
       - if:
