@@ -47,11 +47,13 @@ with an error if any is missing.
   tile, for example `light.bathroom`.
 - `bathroom_fan_entity`: the Bathroom fan controlled by the Fan tile,
   for example `fan.bathroom`.
-- `bathroom_night_entity`: a Home Assistant `button.*` helper pressed by the
-  momentary Night tile, for example `button.bathroom_night`.
 - `bathroom_heat_entity`: the climate entity shown on the dedicated
   heating controller, for example `climate.bathroom_heater`. It is safe for
   this entity to be unavailable while the heater is offline.
+
+The Night tile needs no helper or substitution. It exposes a stateless **Night**
+event entity under the display in Home Assistant. Use its `pressed` event as
+the trigger for an automation.
 
 ## Weather backgrounds
 

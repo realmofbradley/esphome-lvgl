@@ -28,6 +28,17 @@ api:
         then:
           - script.execute: subscribe_bathroom_controls
 
+# A local ESPHome event is the momentary Night control. Unlike an ESPHome
+# button pressed locally, event entities notify Home Assistant.
+event:
+  - platform: template
+    name: "Night"
+    id: bathroom_night_event
+    icon: "mdi:weather-night"
+    device_class: button
+    event_types:
+      - pressed
+
 text_sensor:
   - platform: template
     id: bathroom_light_state
@@ -212,10 +223,9 @@ script:
 
   - id: press_bathroom_night
     then:
-      - homeassistant.service:
-          service: button.press
-          data:
-            entity_id: ${bathroom_night_entity}
+      - event.trigger:
+          id: bathroom_night_event
+          event_type: pressed
 
   - id: show_bathroom_heat_controls
     then:

@@ -14,7 +14,6 @@ substitutions:
   # Home Assistant entities used by the Bathroom Controls page.
   bathroom_light_entity: "light.YOUR_BATHROOM_LIGHT"
   bathroom_fan_entity: "fan.YOUR_BATHROOM_FAN"
-  bathroom_night_entity: "button.YOUR_NIGHT_TRIGGER"
   bathroom_heat_entity: "climate.YOUR_HEATER"
 
 # Wifi Setup
