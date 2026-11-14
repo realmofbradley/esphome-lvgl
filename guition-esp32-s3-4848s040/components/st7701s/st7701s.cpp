@@ -12,9 +12,8 @@ void ST7701S::setup() {
 
   esp_lcd_rgb_panel_config_t config{};
   config.flags.fb_in_psram = 1;
-  config.bounce_buffer_size_px = this->width_ * 10;
-  // Temporary double-framebuffer experiment; otherwise identical to ESPHome 2026.10.1.
-  config.num_fbs = 2;
+  config.bounce_buffer_size_px = this->width_ * 20;
+  config.num_fbs = 1;
   config.timings.h_res = this->width_;
   config.timings.v_res = this->height_;
   config.timings.hsync_pulse_width = this->hsync_pulse_width_;
