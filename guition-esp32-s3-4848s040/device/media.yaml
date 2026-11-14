@@ -520,7 +520,7 @@ script:
           condition:
             lambda: 'return id(media_state_sensor).state == "playing";'
           then:
-            - script.stop: return_to_weather_after_idle
+            - script.execute: inactivity_playback_started
             - if:
                 condition:
                   lambda: 'return !id(media_was_playing);'
@@ -570,9 +570,9 @@ script:
                 condition:
                   lambda: 'return id(media_state_sensor).state == "paused";'
                 then:
-                  # Keep artwork and context indefinitely while paused. The
-                  # user's normal page navigation remains available by swipe.
-                  - script.stop: return_to_weather_after_idle
+                  # Keep the paused context visible until the central touch inactivity
+                  # timeout returns the display to Ambient.
+                  - script.execute: record_user_activity
                   - lvgl.widget.hide: ambient_background
                   - lvgl.widget.hide: display_time
                   - lvgl.widget.hide: display_date
@@ -583,29 +583,7 @@ script:
                   - lambda: 'lv_obj_clear_flag(id(ambient_navigation_button), LV_OBJ_FLAG_CLICKABLE);'
                   - lvgl.widget.show: now_playing_view
                 else:
-                  - script.execute: return_to_weather_after_idle
-
-  - id: return_to_weather_after_idle
-    mode: restart
-    then:
-      - delay: 30s
-      - if:
-          condition:
-            lambda: |-
-              const std::string state = id(media_state_sensor).state;
-              return state == "idle" || state == "off" || state == "standby"
-                  || state == "unavailable" || state == "unknown" || state.empty();
-          then:
-            - lvgl.widget.hide: media_panel
-            - lvgl.widget.hide: now_playing_view
-            - lvgl.widget.show: ambient_background
-            - lvgl.widget.show: display_time
-            - lvgl.widget.show: display_date
-            - lvgl.widget.show: weather_icon
-            - lvgl.widget.show: weather_temperature
-            - lvgl.widget.show: weather_condition
-            - lambda: 'lv_obj_add_flag(id(ambient_navigation_button), LV_OBJ_FLAG_CLICKABLE);'
-            - lvgl.widget.show: ambient_navigation_button
+                  - script.execute: record_user_activity
 
   - id: download_artwork
     mode: restart

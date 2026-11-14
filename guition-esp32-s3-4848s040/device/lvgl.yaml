@@ -3,6 +3,25 @@ lvgl:
 
   page_wrap: true
 
+  top_layer:
+    widgets:
+      # Visible only while dimmed/off. It intercepts the first wake touch so
+      # the control underneath cannot be activated accidentally.
+      - obj:
+          id: touch_wake_guard
+          x: 0
+          y: 0
+          width: 480
+          height: 480
+          bg_opa: TRANSP
+          border_opa: TRANSP
+          hidden: true
+          clickable: true
+          event_bubble: false
+          gesture_bubble: false
+          scrollable: false
+          scrollbar_mode: "off"
+
   pages:
 
     # ==========================================================

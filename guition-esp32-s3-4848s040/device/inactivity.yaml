@@ -1,0 +1,216 @@
+# Central touch inactivity, wake, and music playback override.
+#
+# One monotonic millisecond timestamp drives all three timeout actions. The
+# timeout selects are persisted ESPHome config entities ready for a future
+# Quick Settings page.
+
+globals:
+  - id: last_user_activity_ms
+    type: uint32_t
+    initial_value: '0'
+  - id: screen_inactivity_state
+    type: int
+    initial_value: '0'
+  - id: ambient_returned_for_idle_period
+    type: bool
+    initial_value: 'false'
+  - id: normal_screen_brightness
+    type: float
+    restore_value: true
+    initial_value: '1.0f'
+
+select:
+  - platform: template
+    name: "Return to Ambient"
+    id: return_to_ambient_timeout
+    icon: "mdi:home-clock"
+    entity_category: config
+    optimistic: true
+    restore_value: true
+    initial_option: "30 sec"
+    options:
+      - "15 sec"
+      - "30 sec"
+      - "1 min"
+      - "2 min"
+      - "Never"
+    on_value:
+      - script.execute: record_user_activity
+
+  - platform: template
+    name: "Dim Screen"
+    id: dim_screen_timeout
+    icon: "mdi:brightness-6"
+    entity_category: config
+    optimistic: true
+    restore_value: true
+    initial_option: "5 min"
+    options:
+      - "1 min"
+      - "5 min"
+      - "10 min"
+      - "15 min"
+      - "Never"
+    on_value:
+      - script.execute: record_user_activity
+
+  - platform: template
+    name: "Screen Off"
+    id: screen_off_timeout
+    icon: "mdi:monitor-off"
+    entity_category: config
+    optimistic: true
+    restore_value: true
+    initial_option: "30 min"
+    options:
+      - "5 min"
+      - "15 min"
+      - "30 min"
+      - "1 hour"
+      - "Never"
+    on_value:
+      - script.execute: record_user_activity
+
+interval:
+  - interval: 1s
+    then:
+      - script.execute: check_display_inactivity
+
+script:
+  # Called by every GT911 touch and when a timeout preset changes.
+  - id: record_user_activity
+    mode: restart
+    then:
+      - if:
+          condition:
+            lambda: 'return id(screen_inactivity_state) != 0;'
+          then:
+            - lambda: |-
+                id(last_user_activity_ms) = millis();
+                id(ambient_returned_for_idle_period) = false;
+                id(screen_inactivity_state) = 0;
+            - light.turn_on:
+                id: backlight
+                brightness: !lambda 'return id(normal_screen_brightness);'
+                transition_length: 0s
+            # Keep the guard through the current LVGL input cycle. This makes
+            # the initial wake touch display-only instead of activating a tile.
+            - script.execute: hide_touch_wake_guard
+          else:
+            - lambda: |-
+                id(last_user_activity_ms) = millis();
+                id(ambient_returned_for_idle_period) = false;
+
+  - id: hide_touch_wake_guard
+    mode: restart
+    then:
+      - delay: 350ms
+      - lvgl.widget.hide: touch_wake_guard
+
+  # Playback is an explicit always-on override. It also resets the timestamp,
+  # so paused/idle starts a fresh inactivity period rather than using old time.
+  - id: inactivity_playback_started
+    mode: restart
+    then:
+      - lambda: |-
+          id(last_user_activity_ms) = millis();
+          id(ambient_returned_for_idle_period) = false;
+          id(screen_inactivity_state) = 0;
+      - light.turn_on:
+          id: backlight
+          brightness: !lambda 'return id(normal_screen_brightness);'
+          transition_length: 0s
+      - lvgl.widget.hide: touch_wake_guard
+
+  - id: return_display_to_ambient
+    mode: restart
+    then:
+      - lvgl.widget.hide: media_panel
+      - lvgl.widget.hide: now_playing_view
+      - lvgl.widget.hide: bathroom_heat_screen
+      - lvgl.widget.show: ambient_background
+      - lvgl.widget.show: display_time
+      - lvgl.widget.show: display_date
+      - lvgl.widget.show: weather_icon
+      - lvgl.widget.show: weather_temperature
+      - lvgl.widget.show: weather_condition
+      - lambda: 'lv_obj_add_flag(id(ambient_navigation_button), LV_OBJ_FLAG_CLICKABLE);'
+      - lvgl.widget.show: ambient_navigation_button
+      - lvgl.page.show:
+          id: ambient_page
+          animation: FADE_IN
+
+  - id: check_display_inactivity
+    mode: single
+    then:
+      # Playing media suppresses every inactivity action.
+      - if:
+          condition:
+            lambda: 'return id(media_state_sensor).state != "playing";'
+          then:
+            # Return to Ambient is independent of backlight dim/off state.
+            - if:
+                condition:
+                  lambda: |-
+                    if (id(ambient_returned_for_idle_period)) return false;
+                    const std::string option = id(return_to_ambient_timeout).state;
+                    uint32_t seconds = 0;
+                    if (option == "15 sec") seconds = 15;
+                    else if (option == "30 sec") seconds = 30;
+                    else if (option == "1 min") seconds = 60;
+                    else if (option == "2 min") seconds = 120;
+                    if (seconds == 0) return false;
+                    if ((uint32_t) (millis() - id(last_user_activity_ms)) < seconds * 1000UL) return false;
+                    id(ambient_returned_for_idle_period) = true;
+                    return true;
+                then:
+                  - script.execute: return_display_to_ambient
+
+            # Off is checked before dim so custom presets such as Off=5 min,
+            # Dim=15 min still produce the expected fully-off state.
+            - if:
+                condition:
+                  lambda: |-
+                    if (id(screen_inactivity_state) == 2) return false;
+                    const std::string option = id(screen_off_timeout).state;
+                    uint32_t seconds = 0;
+                    if (option == "5 min") seconds = 300;
+                    else if (option == "15 min") seconds = 900;
+                    else if (option == "30 min") seconds = 1800;
+                    else if (option == "1 hour") seconds = 3600;
+                    return seconds != 0
+                        && (uint32_t) (millis() - id(last_user_activity_ms)) >= seconds * 1000UL;
+                then:
+                  - lambda: |-
+                      if (id(screen_inactivity_state) == 0) {
+                        const float brightness = id(backlight).current_values.get_brightness();
+                        if (brightness > 0.0f) id(normal_screen_brightness) = brightness;
+                      }
+                      id(screen_inactivity_state) = 2;
+                  - lvgl.widget.show: touch_wake_guard
+                  - light.turn_off:
+                      id: backlight
+                      transition_length: 0s
+
+            - if:
+                condition:
+                  lambda: |-
+                    if (id(screen_inactivity_state) != 0) return false;
+                    const std::string option = id(dim_screen_timeout).state;
+                    uint32_t seconds = 0;
+                    if (option == "1 min") seconds = 60;
+                    else if (option == "5 min") seconds = 300;
+                    else if (option == "10 min") seconds = 600;
+                    else if (option == "15 min") seconds = 900;
+                    return seconds != 0
+                        && (uint32_t) (millis() - id(last_user_activity_ms)) >= seconds * 1000UL;
+                then:
+                  - lambda: |-
+                      const float brightness = id(backlight).current_values.get_brightness();
+                      if (brightness > 0.0f) id(normal_screen_brightness) = brightness;
+                      id(screen_inactivity_state) = 1;
+                  - lvgl.widget.show: touch_wake_guard
+                  - light.turn_on:
+                      id: backlight
+                      brightness: 20%
+                      transition_length: 0s

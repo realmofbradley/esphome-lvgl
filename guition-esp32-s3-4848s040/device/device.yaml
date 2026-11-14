@@ -163,6 +163,8 @@ touchscreen:
   - platform: gt911
     id: tft_touch
     display: tft_display
+    on_touch:
+      - script.execute: record_user_activity
 
 
 # -----------------------------------------------------------------------------
