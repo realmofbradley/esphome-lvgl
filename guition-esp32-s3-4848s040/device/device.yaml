@@ -164,76 +164,15 @@ touchscreen:
 
 
 # -----------------------------------------------------------------------------
-# DISPLAY (ST7701S LCD Controller)
+# DISPLAY (MIPI RGB)
 # -----------------------------------------------------------------------------
-# This is the main display configuration. The ST7701S is the LCD driver chip.
-#
-# DIMENSIONS:
-# - 480x480 pixels (square display)
-#
-# SPI SETTINGS:
-# - spi_mode: MODE3 - clock polarity/phase for this display
-# - data_rate: 2MHz - speed for sending commands (not pixel data)
-#
-# COLOR:
-# - color_order: RGB - red, green, blue pixel order
-# - invert_colors: False - don't invert (black stays black, white stays white)
-#
-# CONTROL PINS:
-# - cs_pin: Chip Select (GPIO39) - enables the display
-# - de_pin: Data Enable (GPIO18) - signals valid pixel data
-# - hsync_pin: Horizontal Sync (GPIO16) - start of each row
-# - vsync_pin: Vertical Sync (GPIO17) - start of each frame
-# - pclk_pin: Pixel Clock (GPIO21) - timing for each pixel
-#
-# TIMING:
-# - pclk_frequency: 12MHz pixel clock (how fast pixels are drawn)
-# - hsync/vsync pulse_width, front/back_porch: Timing margins required
-#   by the display. These values are specific to this hardware.
-#
-# PERFORMANCE:
-# - update_interval: never - LVGL manages screen updates, not ESPHome
-# - auto_clear_enabled: False - don't auto-clear (LVGL handles this)
-#
-# INIT SEQUENCE:
-# - Special commands sent to the display on startup
-# - These configure internal display settings
-#
-# DATA PINS:
-# - RGB data pins for sending color information (active matrix display)
-# - red: 5 pins (5 bits), green: 6 pins (6 bits), blue: 5 pins (5 bits)
-# - This is RGB565 format (16-bit color = 65,536 colors)
+# The built-in Guition preset supplies the 480x480 dimensions, RGB pins,
+# panel timings, and ST7701S initialization sequence.
+# LVGL manages screen updates and clearing.
 # -----------------------------------------------------------------------------
 display:
-  - platform: st7701s
+  - platform: mipi_rgb
+    model: GUITION-4848S040
     id: tft_display
-    dimensions:
-      width: 480
-      height: 480
-    spi_mode: MODE3
-    data_rate: 2MHz
-    color_order: RGB
-    invert_colors: False
-    cs_pin: 39
-    de_pin: 18
-    hsync_pin: 16
-    vsync_pin: 17
-    pclk_pin: 21
-    pclk_frequency: 12MHz
-    pclk_inverted: False
-    hsync_pulse_width: 8
-    hsync_front_porch: 10
-    hsync_back_porch: 20
-    vsync_pulse_width: 8
-    vsync_front_porch: 10
-    vsync_back_porch: 10
     update_interval: never
-    auto_clear_enabled: False
-    init_sequence:
-      - 1
-      - [0xFF, 0x77, 0x01, 0x00, 0x00, 0x10] # CMD2_BKSEL_BK0
-      - [0xCD, 0x00] # disable MDT flag
-    data_pins:
-      red: [11, 12, 13, 14, 0]
-      green: [8, 20, 3, 46, 9, 10]
-      blue: [4, 5, 6, 7, 15]
+    auto_clear_enabled: false
