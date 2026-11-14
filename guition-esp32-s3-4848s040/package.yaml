@@ -1,3 +1,13 @@
+# TEMPORARY EXPERIMENT: override only ST7701S with the project-contained
+# ESPHome 2026.10.1 copy below; its sole functional change is num_fbs = 2.
+external_components:
+  - source:
+      type: git
+      url: https://github.com/realmofbradley/esphome-lvgl
+      ref: main
+      path: guition-esp32-s3-4848s040/components
+    refresh: 1sec
+    components: [st7701s]
 packages:
   device: !include device/device.yaml
   diagnostics: !include device/diagnostics.yaml
