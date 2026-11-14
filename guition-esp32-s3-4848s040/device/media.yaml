@@ -293,44 +293,16 @@ text:
     max_length: 255
 
   - platform: template
-    name: "Preset 5 Name"
-    id: music_preset_5_name
+    name: "Daily Briefing Entity"
+    id: daily_briefing_entity
     entity_category: config
-    icon: "mdi:form-textbox"
-    mode: text
-    optimistic: true
-    restore_value: true
-    initial_value: "Preset 5"
-    min_length: 0
-    max_length: 40
-    on_value:
-      - script.execute: update_music_presets
-
-  - platform: template
-    name: "Preset 5 Icon"
-    id: music_preset_5_icon
-    entity_category: config
-    icon: "mdi:emoticon-music-outline"
-    mode: text
-    optimistic: true
-    restore_value: true
-    initial_value: "mdi:music-note"
-    min_length: 0
-    max_length: 64
-    on_value:
-      - script.execute: update_music_presets
-
-  - platform: template
-    name: "Preset 5 URI"
-    id: music_preset_5_uri
-    entity_category: config
-    icon: "mdi:link-variant"
+    icon: "mdi:newspaper"
     mode: text
     optimistic: true
     restore_value: true
     initial_value: ""
     min_length: 0
-    max_length: 255
+    max_length: 100
 
 text_sensor:
   - platform: template
@@ -466,8 +438,6 @@ script:
           lv_label_set_text(id(music_preset_3_icon_label), preset_icon(id(music_preset_3_icon).state));
           lv_label_set_text(id(music_preset_4_label), id(music_preset_4_name).state.empty() ? "Preset 4" : id(music_preset_4_name).state.c_str());
           lv_label_set_text(id(music_preset_4_icon_label), preset_icon(id(music_preset_4_icon).state));
-          lv_label_set_text(id(music_preset_5_label), id(music_preset_5_name).state.empty() ? "Preset 5" : id(music_preset_5_name).state.c_str());
-          lv_label_set_text(id(music_preset_5_icon_label), preset_icon(id(music_preset_5_icon).state));
 
   - id: play_music_preset
     mode: queued
@@ -495,6 +465,24 @@ script:
                 level: WARN
                 tag: music_presets
                 format: "Preset ignored: configure a URI and valid Media Player"
+
+  - id: press_daily_briefing
+    then:
+      - if:
+          condition:
+            lambda: 'return id(daily_briefing_entity).state.rfind("button.", 0) == 0;'
+          then:
+            - homeassistant.service:
+                service: button.press
+                variables:
+                  target: !lambda 'return id(daily_briefing_entity).state;'
+                data_template:
+                  entity_id: "{{ target }}"
+          else:
+            - logger.log:
+                level: WARN
+                tag: daily_briefing
+                format: "Daily Briefing Entity must start with button."
 
   - id: stop_music
     then:

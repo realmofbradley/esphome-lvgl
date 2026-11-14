@@ -92,11 +92,17 @@ order. Paused artwork stays visible, while idle/off returns to weather after a
 
 ### Music presets
 
-The Music page has five runtime-configurable Music Assistant presets and a fixed
-**Stop Music** tile. In the device's Home Assistant **Configuration** entities,
-set **Preset 1 Name**, **Preset 1 Icon**, and **Preset 1 URI**, then repeat for
-presets 2 through 5. Values are stored on the display and survive reboots; a
-firmware rebuild is not required.
+The Music page has four runtime-configurable Music Assistant presets, a
+**Daily Briefing** trigger tile, and a fixed **Stop Music** tile. In the
+device's Home Assistant **Configuration** entities, set **Preset 1 Name**,
+**Preset 1 Icon**, and **Preset 1 URI**, then repeat for presets 2 through 4.
+Values are stored on the display and survive reboots; a firmware rebuild is
+not required.
+
+Set **Daily Briefing Entity** to a `button.*` entity. Tapping the tile sends
+a momentary `button.press` action to that entity and does not latch any UI
+state. The target is stored on the display and can be changed without a
+firmware rebuild.
 
 A preset sends its URI unchanged to `music_assistant.play_media` for the
 configured **Media Player**, with `media_type: playlist` and

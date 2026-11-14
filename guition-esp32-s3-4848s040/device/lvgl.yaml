@@ -2049,7 +2049,7 @@ lvgl:
                   text_color: 0xFFFFFF
 
         - button:
-            id: music_preset_5_button
+            id: daily_briefing_button
             x: 24
             y: 312
             width: 210
@@ -2062,23 +2062,19 @@ lvgl:
             scrollable: false
             scrollbar_mode: "off"
             on_click:
-              - script.execute:
-                  id: play_music_preset
-                  uri: !lambda 'return id(music_preset_5_uri).state;'
+              - script.execute: press_daily_briefing
             widgets:
               - label:
-                  id: music_preset_5_icon_label
                   align: LEFT_MID
                   x: 16
-                  text: "\U000F075A"
+                  text: "\U000F0395"
                   text_font: icon_font
                   text_color: 0x86EFAC
               - label:
-                  id: music_preset_5_label
                   align: LEFT_MID
                   x: 68
                   width: 124
-                  text: "Preset 5"
+                  text: "Daily Briefing"
                   text_align: LEFT
                   long_mode: DOT
                   text_font: roboto18_font
