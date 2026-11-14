@@ -164,6 +164,13 @@ script:
               return !condition.empty() &&
                      (sun == "above_horizon" || sun == "below_horizon");
           then:
+            - logger.log:
+                level: WARN
+                tag: graphics_diag
+                format: "BACKGROUND: update starting"
+            - script.execute:
+                id: log_memory_diagnostics
+                reason: "background_update_starting"
             - online_image.set_url:
                 id: ambient_background_image
                 url: !lambda |-

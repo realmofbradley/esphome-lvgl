@@ -34,9 +34,3 @@ esphome:
             id: log_memory_diagnostics
             reason: "boot_ui_initialized"
 
-interval:
-  - interval: 30s
-    then:
-      - script.execute:
-          id: log_memory_diagnostics
-          reason: "periodic_30s"

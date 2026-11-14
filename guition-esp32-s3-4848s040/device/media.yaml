@@ -26,6 +26,13 @@ artwork_image:
     buffer_size: 65536
     allow_insecure_local_urls: true
     on_download_finished:
+      - logger.log:
+          level: WARN
+          tag: graphics_diag
+          format: "ARTWORK: download finished"
+      - script.execute:
+          id: log_memory_diagnostics
+          reason: "artwork_download_finished"
       - script.execute: apply_downloaded_artwork
     on_error:
       - script.execute: retry_artwork
@@ -547,6 +554,17 @@ script:
             lambda: 'return id(media_state_sensor).state == "playing";'
           then:
             - script.stop: return_to_weather_after_idle
+            - if:
+                condition:
+                  lambda: 'return !id(media_was_playing);'
+                then:
+                  - logger.log:
+                      level: WARN
+                      tag: graphics_diag
+                      format: "NOWPLAYING: transition starting"
+                  - script.execute:
+                      id: log_memory_diagnostics
+                      reason: "now_playing_transition_starting"
             - lvgl.widget.hide: ambient_background
             - lvgl.widget.hide: display_time
             - lvgl.widget.hide: display_date
@@ -567,9 +585,13 @@ script:
                   - lvgl.page.show:
                       id: ambient_page
                       animation: FADE_IN
+                  - logger.log:
+                      level: WARN
+                      tag: graphics_diag
+                      format: "NOWPLAYING: transition finished"
                   - script.execute:
                       id: log_memory_diagnostics
-                      reason: "now_playing_visible"
+                      reason: "now_playing_transition_finished"
             - lambda: 'id(media_was_playing) = true;'
             - script.execute: update_media_progress
           else:
@@ -622,6 +644,13 @@ script:
     mode: restart
     then:
       - delay: 250ms
+      - logger.log:
+          level: WARN
+          tag: graphics_diag
+          format: "ARTWORK: download starting"
+      - script.execute:
+          id: log_memory_diagnostics
+          reason: "artwork_download_starting"
       - artwork_image.set_url:
           id: album_art_image
           url: !lambda 'return id(media_last_artwork_url);'
@@ -631,13 +660,24 @@ script:
     mode: restart
     then:
       - lambda: 'id(artwork_retry_count) = 0;'
+      - logger.log:
+          level: WARN
+          tag: graphics_diag
+          format: "ARTWORK: LVGL image update starting"
+      - script.execute:
+          id: log_memory_diagnostics
+          reason: "artwork_lvgl_update_starting"
       - lvgl.image.update:
           id: album_art_widget
           src: album_art_image
       - lvgl.widget.show: album_art_widget
+      - logger.log:
+          level: WARN
+          tag: graphics_diag
+          format: "ARTWORK: LVGL image update finished"
       - script.execute:
           id: log_memory_diagnostics
-          reason: "artwork_download_finished"
+          reason: "artwork_lvgl_update_finished"
 
   - id: retry_artwork
     mode: restart
