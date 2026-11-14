@@ -1,5 +1,6 @@
 packages:
   device: !include device/device.yaml
+  diagnostics: !include device/diagnostics.yaml
   sensors: !include device/sensors.yaml
   controls: !include device/controls.yaml
   media: !include device/media.yaml

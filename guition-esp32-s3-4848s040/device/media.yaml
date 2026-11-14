@@ -567,6 +567,9 @@ script:
                   - lvgl.page.show:
                       id: ambient_page
                       animation: FADE_IN
+                  - script.execute:
+                      id: log_memory_diagnostics
+                      reason: "now_playing_visible"
             - lambda: 'id(media_was_playing) = true;'
             - script.execute: update_media_progress
           else:
@@ -632,6 +635,9 @@ script:
           id: album_art_widget
           src: album_art_image
       - lvgl.widget.show: album_art_widget
+      - script.execute:
+          id: log_memory_diagnostics
+          reason: "artwork_download_finished"
 
   - id: retry_artwork
     mode: restart

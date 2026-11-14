@@ -12,3 +12,6 @@ image:
       - lvgl.image.update:
           id: ambient_background
           src: ambient_background_image
+      - script.execute:
+          id: log_memory_diagnostics
+          reason: "ambient_download_finished"

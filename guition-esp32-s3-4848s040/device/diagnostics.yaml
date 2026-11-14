@@ -1,0 +1,42 @@
+# Temporary heap diagnostics for screen tearing / crash investigation.
+# Remove this package fragment after the memory trend has been captured.
+
+script:
+  - id: log_memory_diagnostics
+    mode: queued
+    max_runs: 5
+    parameters:
+      reason: string
+    then:
+      - lambda: |-
+          const size_t internal_free =
+              heap_caps_get_free_size(MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
+          const size_t internal_largest =
+              heap_caps_get_largest_free_block(MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
+          const size_t psram_free =
+              heap_caps_get_free_size(MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+          const size_t psram_largest =
+              heap_caps_get_largest_free_block(MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+          ESP_LOGI("memdiag",
+                   "MEMDIAG [%s] internal_free=%u internal_largest=%u psram_free=%u psram_largest=%u",
+                   reason.c_str(),
+                   static_cast<unsigned>(internal_free),
+                   static_cast<unsigned>(internal_largest),
+                   static_cast<unsigned>(psram_free),
+                   static_cast<unsigned>(psram_largest));
+
+esphome:
+  on_boot:
+    - priority: -100
+      then:
+        - delay: 15s
+        - script.execute:
+            id: log_memory_diagnostics
+            reason: "boot_ui_initialized"
+
+interval:
+  - interval: 30s
+    then:
+      - script.execute:
+          id: log_memory_diagnostics
+          reason: "periodic_30s"
