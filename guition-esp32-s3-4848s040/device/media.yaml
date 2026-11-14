@@ -292,17 +292,16 @@ text:
     min_length: 0
     max_length: 255
 
+# A local ESPHome event is the momentary Daily Briefing control, matching the
+# Bathroom Night tile pattern. Home Assistant automations listen for "pressed".
+event:
   - platform: template
-    name: "Daily Briefing Entity"
-    id: daily_briefing_entity
-    entity_category: config
+    name: "Daily Briefing"
+    id: daily_briefing_event
     icon: "mdi:newspaper"
-    mode: text
-    optimistic: true
-    restore_value: true
-    initial_value: ""
-    min_length: 0
-    max_length: 100
+    device_class: button
+    event_types:
+      - pressed
 
 text_sensor:
   - platform: template
@@ -468,21 +467,9 @@ script:
 
   - id: press_daily_briefing
     then:
-      - if:
-          condition:
-            lambda: 'return id(daily_briefing_entity).state.rfind("button.", 0) == 0;'
-          then:
-            - homeassistant.service:
-                service: button.press
-                variables:
-                  target: !lambda 'return id(daily_briefing_entity).state;'
-                data_template:
-                  entity_id: "{{ target }}"
-          else:
-            - logger.log:
-                level: WARN
-                tag: daily_briefing
-                format: "Daily Briefing Entity must start with button."
+      - event.trigger:
+          id: daily_briefing_event
+          event_type: pressed
 
   - id: stop_music
     then:

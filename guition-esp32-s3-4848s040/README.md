@@ -99,10 +99,10 @@ device's Home Assistant **Configuration** entities, set **Preset 1 Name**,
 Values are stored on the display and survive reboots; a firmware rebuild is
 not required.
 
-Set **Daily Briefing Entity** to a `button.*` entity. Tapping the tile sends
-a momentary `button.press` action to that entity and does not latch any UI
-state. The target is stored on the display and can be changed without a
-firmware rebuild.
+The Daily Briefing tile exposes a stateless **Daily Briefing** event entity
+under the display in Home Assistant, matching the Bathroom Night tile. Use
+its `pressed` event as the trigger for an automation; the tile does not latch
+any UI state.
 
 A preset sends its URI unchanged to `music_assistant.play_media` for the
 configured **Media Player**, with `media_type: playlist` and
