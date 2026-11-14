@@ -1,9 +1,8 @@
 # Media integration adapted from jtenniswood/esphome-media-player.
 # Keeps this project's ambient UI and navigation while reusing the mature
-# runtime subscription, artwork URL, retry, progress and grouping behaviour.
+# native subscription, artwork URL, retry, progress and grouping behaviour.
 
 substitutions:
-  media_player_default: ""
   speaker_group_sensor: "sensor.speaker_group"
 
 external_components:
@@ -41,9 +40,6 @@ globals:
   - id: media_subscription_generation
     type: int
     initial_value: '0'
-  - id: subscribed_media_entity
-    type: std::string
-    initial_value: '""'
   - id: media_last_artwork_url
     type: std::string
     initial_value: '""'
@@ -108,37 +104,10 @@ api:
         condition:
           lambda: 'return client_info.find("Home Assistant") != std::string::npos;'
         then:
-          - script.execute: subscribe_selected_media_player
+          - script.execute: subscribe_configured_media_player
           - script.execute: parse_speakers
 
 text:
-  - platform: template
-    name: "Media Player"
-    id: media_player_entity
-    entity_category: config
-    icon: "mdi:cast-audio"
-    mode: text
-    optimistic: true
-    restore_value: true
-    initial_value: "${media_player_default}"
-    min_length: 0
-    max_length: 100
-    on_value:
-      - script.execute: subscribe_selected_media_player
-      # Native API subscriptions are negotiated at connection time. Persist and
-      # reboot only for an operator-initiated change while HA is connected.
-      - delay: 500ms
-      - if:
-          condition:
-            lambda: |-
-              return !x.empty() && x.rfind("media_player.", 0) == 0
-                  && esphome::api::global_api_server != nullptr
-                  && esphome::api::global_api_server->is_connected();
-          then:
-            - lambda: 'global_preferences->sync();'
-            - delay: 200ms
-            - lambda: 'App.safe_reboot();'
-
   - platform: template
     name: "Preset 1 Name"
     id: music_preset_1_name
@@ -453,13 +422,13 @@ script:
       - if:
           condition:
             lambda: |-
-              return id(media_player_entity).state.rfind("media_player.", 0) == 0
+              return std::string("${media_player_target}").rfind("media_player.", 0) == 0
                   && !uri.empty();
           then:
             - homeassistant.service:
                 service: music_assistant.play_media
                 variables:
-                  target: !lambda 'return id(media_player_entity).state;'
+                  target: !lambda 'return std::string("${media_player_target}");'
                   preset_uri: !lambda 'return uri;'
                 data_template:
                   entity_id: "{{ target }}"
@@ -482,31 +451,29 @@ script:
     then:
       - if:
           condition:
-            lambda: 'return id(media_player_entity).state.rfind("media_player.", 0) == 0;'
+            lambda: 'return std::string("${media_player_target}").rfind("media_player.", 0) == 0;'
           then:
             - homeassistant.service:
                 service: media_player.media_stop
                 variables:
-                  target: !lambda 'return id(media_player_entity).state;'
+                  target: !lambda 'return std::string("${media_player_target}");'
                 data_template:
                   entity_id: "{{ target }}"
 
-  - id: subscribe_selected_media_player
+  - id: subscribe_configured_media_player
     mode: restart
     then:
       - lambda: |-
           if (esphome::api::global_api_server == nullptr) return;
-          std::string entity = id(media_player_entity).state;
+          const std::string entity = "${media_player_target}";
           if (entity.empty() || entity.rfind("media_player.", 0) != 0) {
-            id(media_subscription_generation)++;
-            id(subscribed_media_entity) = "";
-            if (!entity.empty()) ESP_LOGW("media", "Media Player must start with media_player.");
+            ESP_LOGE("media", "media_player_target must start with media_player.");
             return;
           }
-          if (entity == id(subscribed_media_entity)) return;
 
+          // Invalidate callbacks from an earlier API connection before
+          // registering this connection's subscriptions.
           id(media_subscription_generation)++;
-          id(subscribed_media_entity) = entity;
           id(media_last_artwork_url) = "";
           id(media_base_position) = 0.0f;
           id(media_duration_value) = 0.0f;
@@ -726,7 +693,7 @@ script:
       - homeassistant.service:
           service: media_player.media_play_pause
           variables:
-            target: !lambda 'return id(media_player_entity).state;'
+            target: !lambda 'return std::string("${media_player_target}");'
           data_template:
             entity_id: "{{ target }}"
 
@@ -735,7 +702,7 @@ script:
       - homeassistant.service:
           service: media_player.media_previous_track
           variables:
-            target: !lambda 'return id(media_player_entity).state;'
+            target: !lambda 'return std::string("${media_player_target}");'
           data_template:
             entity_id: "{{ target }}"
 
@@ -744,7 +711,7 @@ script:
       - homeassistant.service:
           service: media_player.media_next_track
           variables:
-            target: !lambda 'return id(media_player_entity).state;'
+            target: !lambda 'return std::string("${media_player_target}");'
           data_template:
             entity_id: "{{ target }}"
 
@@ -767,7 +734,7 @@ script:
     then:
       - script.execute:
           id: set_player_volume
-          target: !lambda 'return id(media_player_entity).state;'
+          target: !lambda 'return std::string("${media_player_target}");'
           level: !lambda 'return id(media_volume_value) + direction * 0.05f;'
 
   # Capture each target/level in script parameters, so group and individual
@@ -803,7 +770,7 @@ script:
                 const int pct = (int) (level * 100.0f + 0.5f);
                 level = pct / 100.0f;
                 const uint32_t until = millis() + 1500;
-                if (target == id(media_player_entity).state) {
+                if (target == std::string("${media_player_target}")) {
                   id(media_volume_value) = level;
                   id(media_volume_pending_pct) = pct;
                   id(media_volume_pending_until) = until;
@@ -843,7 +810,7 @@ script:
             }
           }
           for (int i = 0; i < id(speaker_count); i++) {
-            if (id(speaker_entity_ids)[i] == id(media_player_entity).state) {
+            if (id(speaker_entity_ids)[i] == std::string("${media_player_target}")) {
               id(speaker_volumes)[i] = id(media_volume_value);
               continue;
             }
@@ -903,7 +870,7 @@ script:
             id(speaker_grouped)[i] = false;
           }
           id(speaker_count) = 0;
-          const std::string selected = id(media_player_entity).state;
+          const std::string selected = std::string("${media_player_target}");
           int selected_source_index = -1;
           for (size_t i = 0; i < ids.size(); i++) {
             if (ids[i].empty() || ids[i] == "unknown" || ids[i] == "unavailable" || ids[i] == "None") {
@@ -978,7 +945,7 @@ script:
           normalized += ",";
           for (int i = 0; i < id(speaker_count); i++) {
             const std::string entity = id(speaker_entity_ids)[i];
-            id(speaker_grouped)[i] = entity == id(media_player_entity).state
+            id(speaker_grouped)[i] = entity == std::string("${media_player_target}")
                 || normalized.find("," + entity + ",") != std::string::npos;
           }
       - script.execute: refresh_speaker_panel
@@ -1007,7 +974,7 @@ script:
             char buf[8];
             snprintf(buf, sizeof(buf), "%d%%", (int) (id(speaker_volumes)[i] * 100.0f + 0.5f));
             lv_label_set_text(volumes[i], buf);
-            const bool leader = id(speaker_entity_ids)[i] == id(media_player_entity).state;
+            const bool leader = id(speaker_entity_ids)[i] == std::string("${media_player_target}");
             lv_label_set_text(toggle_labels[i], leader ? "Main" : id(speaker_grouped)[i] ? "Leave" : "Join");
             if (leader) lv_obj_add_state(toggles[i], LV_STATE_DISABLED);
             else lv_obj_clear_state(toggles[i], LV_STATE_DISABLED);
@@ -1049,7 +1016,7 @@ script:
     then:
       - if:
           condition:
-            lambda: 'return slot >= 0 && slot < id(speaker_count) && id(speaker_entity_ids)[slot] != id(media_player_entity).state;'
+            lambda: 'return slot >= 0 && slot < id(speaker_count) && id(speaker_entity_ids)[slot] != std::string("${media_player_target}");'
           then:
             - if:
                 condition:
@@ -1065,7 +1032,7 @@ script:
                   - homeassistant.service:
                       service: media_player.join
                       variables:
-                        target: !lambda 'return id(media_player_entity).state;'
+                        target: !lambda 'return std::string("${media_player_target}");'
                         member: !lambda 'return id(speaker_entity_ids)[slot];'
                       data_template:
                         entity_id: "{{ target }}"

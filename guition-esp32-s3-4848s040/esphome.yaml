@@ -6,6 +6,8 @@ substitutions:
   # Home Assistant URL the display downloads backgrounds and artwork from.
   # No trailing slash. Required: the build stops with an error if unset.
   ha_base_url: "http://192.168.1.100:8123"
+  # Home Assistant media player used by Now Playing and media controls. Required.
+  media_player_target: "media_player.YOUR_BATHROOM_SPEAKER"
   # Home Assistant weather entity for the ambient face. Required.
   weather_entity: "weather.forecast_home"
   # Home Assistant sensors shown in the Bathroom climate pill. Required.

@@ -37,6 +37,9 @@ with an error if any is missing.
 - `ha_base_url`: your Home Assistant address, for example
   `http://192.168.1.100:8123` (no trailing slash). The display downloads
   weather backgrounds and album artwork from it.
+- `media_player_target`: the Home Assistant media player used by Now Playing,
+  playback controls, volume, speaker grouping, Music Assistant presets, and
+  Stop Music, for example `media_player.bathroom`.
 - `weather_entity`: the Home Assistant weather entity shown on the ambient
   face, for example `weather.forecast_home`.
 - `bathroom_temperature_entity`: the Home Assistant temperature sensor shown
@@ -79,10 +82,11 @@ works but shows no background.
 
 ## Media setup
 
-After the device connects to Home Assistant, set its **Media Player** text
-configuration entity to the full entity ID to control (for example,
-`media_player.bathroom`). The choice is stored on the display and changing it
-reboots once so the native API can negotiate the new dynamic subscriptions.
+Set `media_player_target` in the top-level `substitutions:` block to the
+full Home Assistant entity ID to control (for example,
+`media_player.bathroom`). The display subscribes to that player's state and
+attributes when Home Assistant connects; changing the player requires updating
+the YAML and flashing the device again.
 
 Now Playing replaces only the ambient weather face while playback is active;
 the Bathroom Controls and Music Presets pages remain in the existing swipe
@@ -105,7 +109,7 @@ its `pressed` event as the trigger for an automation; the tile does not latch
 any UI state.
 
 A preset sends its URI unchanged to `music_assistant.play_media` for the
-configured **Media Player**, with `media_type: playlist` and
+configured `media_player_target`, with `media_type: playlist` and
 `enqueue: replace`. The stop tile sends `media_player.media_stop` to the
 same player.
 
