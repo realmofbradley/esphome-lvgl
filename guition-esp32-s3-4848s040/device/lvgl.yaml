@@ -1,6 +1,5 @@
 lvgl:
   bg_color: 0x0F1115
-  buffer_size: 12%
 
   page_wrap: true
 
